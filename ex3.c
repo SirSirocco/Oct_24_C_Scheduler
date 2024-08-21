@@ -1,36 +1,48 @@
-#include <unistd.h>     // exec
+#include <unistd.h>     // fork, exec
 #include <sys/wait.h>   // waitpid
 #include <stdio.h>
 #include <stdlib.h>     // exit e NULL
 
 void exibeVetor(int* v, int n);
+void exibeVetorLn(int* v, int n);
 void ordenaVetor(int* v, int n);
 
 int main(void)
 {
     int v[10], tam = sizeof(v) / sizeof(v[0]), status;
 
+    printf("digite 10 valores inteiros:\n");
+
     for (int i = 0; i < tam; i++)
         fscanf(stdin, " %d", v + i);
-
-    exibeVetor(v, tam);
-    printf("\n");
+    
+    printf("antes do fork:\n");
+    exibeVetorLn(v, tam);
 
     if (fork() != 0) // Pai
     {
         waitpid(-1, &status, 0);
-        exibeVetor(v, tam);
-        printf("\n");
+        printf("depois do fork:\n");
+        exibeVetorLn(v, tam);
     }
 
     else // Filho
     {
-        ordenaVetor(v, n);
+        ordenaVetor(v, tam);
+        printf("vetor ordenado pelo filho:\n");
+        exibeVetorLn(v, tam);
         exit(EXIT_SUCCESS);
     }
     
     return 0;
 }
+
+void exibeVetorLn(int* v, int n)
+{
+    exibeVetor(v, n);
+    printf("\n");
+}
+
 
 void exibeVetor(int* v, int n)
 {
@@ -38,10 +50,10 @@ void exibeVetor(int* v, int n)
 
     fprintf(file, "{ %d", v[0]);
 
-    for (int i = 1; i < n - 1; i++)
+    for (int i = 1; i < n; i++)
         fprintf(file, ", %d", v[i]);
 
-    fprintf(file, " }", v[n - 1]);
+    fprintf(file, " }");
 }
 
 void ordenaVetor(int* v, int n)
