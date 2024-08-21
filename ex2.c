@@ -1,7 +1,7 @@
-#include <unistd.h> // Comandos exec
-#include <sys/wait.h> // waitpid
+#include <unistd.h>     // exec
+#include <sys/wait.h>   // waitpid
 #include <stdio.h>
-#include <stdlib.h> // exit e NULL
+#include <stdlib.h>     // exit e NULL
 
 int main(void)
 {
