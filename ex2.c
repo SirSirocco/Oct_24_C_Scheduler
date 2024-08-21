@@ -37,5 +37,8 @@ int main(void)
 /*
 ## Resposta ao exercicio
 
-    O valor de var nao foi o mesmo nos dois programas, mesmo depois do retorno do filho ao pai. Isso se explica pelo 
+    O valor de var nao foi o mesmo nos dois programas, mesmo depois do retorno do filho ao pai.
+    Isso se explica pelo fato de que os codigos e as variaveis dos programas respectivos aos processos foram 
+    armazenados em areas diferentes da RAM. Dessa forma, nao houve compartilhamento de variaveis, ainda
+    que estas pudessem ter sido alocadas dinamicamente.
 */
