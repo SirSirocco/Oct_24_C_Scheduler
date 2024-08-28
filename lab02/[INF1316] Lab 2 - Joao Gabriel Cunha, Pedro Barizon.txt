@@ -8,31 +8,90 @@ João Gabriel Cunha  2211302
 o filho terminar e o filho escreve o seu pid e termina.
 
 ******************************** CODIGO FONTE ********************************
-#include <unistd.h>     // fork, exec
-#include <sys/wait.h>   // waitpid
-#include <stdio.h>
-#include <stdlib.h>     // exit e NULL
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <unistd.h>     // fork
+#include <sys/wait.h>
+#include <stdio.h>      // puts
+#include <stdlib.h>
 
-int main(void) 
+void exibeMatriz(int* matriz, int lin, int col);
+
+int main(int argc, char *argv[])
 {
-    int pid, status;
+    int status, pid, segmento[3], *matriz[3];
+    int matAux1[9] = {5, 7, 9, 6, 3, 6, 3, 1, 2};
+    int matAux2[9] = {5, 3, 0, 6, 2, 6, 5, 7, 0};
+    int matAux3[9] = {0}; // Matriz resultante inicializada com 0
+    int* matAux[3] = {matAux1, matAux2, matAux3};
+    int tamSeg = sizeof(segmento) / sizeof(segmento[0]);
 
-    pid = getpid();
-    printf("pid do pai: %d\n", pid);
-
-    if (fork() != 0) // Pai
+    // Alocacao de memoria compartilhada
+    for (int i = 0; i < tamSeg; i++)
     {
-        waitpid(-1, &status, 0);
+        segmento[i] = shmget(IPC_PRIVATE, 9 * sizeof(int), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+        matriz[i] = (int*)shmat(segmento[i], 0, 0);
     }
 
-    else // Filho
+    // Preenchimento de valores usando aritmetica de ponteiros
+    for (int i = 0; i < tamSeg; i++)
     {
-        pid = getpid();
-        printf("pid do filho: %d\n", pid);
-        exit(EXIT_SUCCESS);
+        for (int j = 0; j < 9; j++)
+        {
+            *(matriz[i] + j) = *(matAux[i] + j);
+        }
+        printf("Matriz %d criada:\n", i + 1);
+        exibeMatriz(matriz[i], 3, 3);
+        printf("\n");
+    }
+
+    // Processamento: para cada linha da matriz
+    for (int k = 0; k < 3; k++)
+    {
+        if ((pid = fork()) < 0) // Erro
+        {
+            puts("Ocorreu um erro na criacao do processo");
+            exit(-4);
+        }
+        else if (pid == 0) // Processo filho
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                *(matriz[2] + 3 * k + i) = *(matriz[0] + 3 * k + i) + *(matriz[1] + 3 * k + i);
+            }
+            exit(EXIT_SUCCESS);
+        }
+        else // Processo pai
+        {
+            printf("Linha %d preenchida:\n", k + 1);
+            waitpid(pid, &status, 0);
+            exibeMatriz(matriz[2], 3, 3);
+            printf("\n");
+        }
+    }
+
+    // Desanexar e remover segmentos de memoria compartilhada
+    for (int i = 0; i < tamSeg; i++)
+    {
+        shmdt(matriz[i]);
+        shmctl(segmento[i], IPC_RMID, 0);
     }
 
     return 0;
+}
+
+void exibeMatriz(int* matriz, int lin, int col)
+{
+    for (int i = 0; i < lin; i++)
+    {
+        printf("|");
+        for (int j = 0; j < col; j++)
+        {
+            printf(" %3d", *(matriz + i * col + j));
+        }
+        printf("   |\n");
+    }
 }
 
 
@@ -42,19 +101,55 @@ int main(void)
 
 
 $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$ SAIDA $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-pid do pai: 3755
-pid do filho: 3756
+Matriz 1 criada:
+|   5   7   9   |
+|   6   3   6   |
+|   3   1   2   |
+
+Matriz 2 criada:
+|   5   3   0   |
+|   6   2   6   |
+|   5   7   0   |
+
+Matriz 3 criada:
+|   0   0   0   |
+|   0   0   0   |
+|   0   0   0   |
+
+Linha 1 preenchida:
+|  10  10   9   |
+|   0   0   0   |
+|   0   0   0   |
+
+Linha 2 preenchida:
+|  10  10   9   |
+|  12   5  12   |
+|   0   0   0   |
+
+Linha 3 preenchida:
+|  10  10   9   |
+|  12   5  12   |
+|   8   8   2   |
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% REFLEXAO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Inicialmente, por meio da execucao de getpid(), obtem-se o pid do processo pai, 
-exibido na console com printf. Em seguida, a execucao de fork() demarca o
-surgimento do processo filho. No filho, fork() retorna 0; no pai, fork() retorna
-o pid do filho, um valor nao nulo. Isso permitiu variar os comandos em cada
-processo por meio de controle condicional. O filho, entao, exibe seu pid e
-finaliza com exit. O pai, que aguardava o filho com waitpid, retoma sua execucao,
-retornando 0 ao final.
+Inicialmente, foram alocadas tres matrizes 3 x 3 linearizadas (vetores 1 x 9) na
+area de memoria compartilhada por meio do comando "shmget", que retornou, para
+cada chamada, um identificador de segmento. A partir dos identificadores, com o
+uso de "shmat", os enderecos iniciais das matrizes foram atribuidos aos ponteiros
+armazendos em "matriz". Em seguida, cada matriz foi preenchida com auxilio de
+"matAux", sendo ao final exibida. Logo apos, para cada linha da matriz solucao
+(a terceira), foi criado, por meio do "fork()", um processo filho responsavel por
+atualizar as entradas da linha atual com a soma das entradas respectivas das outras
+duas matrizes. Em todos os casos, o processo pai esperou seu filho terminar para,
+enfim, exibir o estado da matriz solucao. Finalmente, o pai foi encerrado com
+"return 0".
 
+Cabe mencionar que, quando se manipularam as matrizes na regiao compartilhada, os
+processos funcionaram corretamente com o uso de aritmetica de ponteiros em
+detrimento de indexacao. O porque disso ainda nao nos eh sabido e, provavelmente,
+envolve questoes de hardware mais minuciosas.
 
 
 
