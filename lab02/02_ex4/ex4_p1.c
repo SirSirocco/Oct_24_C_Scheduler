@@ -1,36 +1,40 @@
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-#include <time.h>
+
 
 #define SHM_SIZE 1024
 #define KEY1 8752
 
-typedef struct {
+typedef struct
+{
     int value;
     int sequence;
 } SharedData;
 
-int main() {
-    int shmid = shmget(KEY1, SHM_SIZE, 0666);
-    if (shmid == -1) {
+int main(void) {
+    int shmid = shmget(KEY1, SHM_SIZE, 0666), sleep_time;
+    if (shmid == -1)
+    {
         perror("shmget");
         exit(1);
     }
     
-    SharedData *m1 = (SharedData *)shmat(shmid, NULL, 0);
-    if (m1 == (void *)-1) {
+    SharedData* m1 = (SharedData*)shmat(shmid, NULL, 0);
+    if (m1 == (void*)-1) {
         perror("shmat");
         exit(1);
     }
     
     // Use uma combinação de tempo e PID para a semente
-    srand(time(NULL) ^ (getpid()<<16));
+    srand(time(NULL) ^ (getpid() << 16));
     
-    while (1) {
-        int sleep_time = rand() % 5 + 1;
+    while (1)
+    {
+        sleep_time = rand() % 5 + 1;
         sleep(sleep_time);
         m1->value = rand() % 100;
         m1->sequence++;

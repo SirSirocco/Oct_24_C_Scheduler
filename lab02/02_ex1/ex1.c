@@ -36,8 +36,8 @@ int main(int argc, char* argv[])
         printf("\n");
     }
 
-    // Processamento: para cada linha da matriz
-    for (int k = 0; k < 3; k++)
+    // Processamento para cada linha da matriz
+    for (int i = 0; i < tamSeg; i++)
     {
         if ((pid = fork()) < 0) // Erro
         {
@@ -46,15 +46,15 @@ int main(int argc, char* argv[])
         }
         else if (pid == 0) // Processo filho
         {
-            for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
             {
-                *(matriz[2] + 3 * k + i) = *(matriz[0] + 3 * k + i) + *(matriz[1] + 3 * k + i);
+                *(matriz[2] + 3 * i + j) = *(matriz[0] + 3 * i + j) + *(matriz[1] + 3 * i + j);
             }
             exit(EXIT_SUCCESS);
         }
         else // Processo pai
         {
-            printf("Linha %d preenchida:\n", k + 1);
+            printf("Linha %d preenchida:\n", i + 1);
             waitpid(pid, &status, 0);
             exibeMatriz(matriz[2], 3, 3);
             printf("\n");
@@ -95,7 +95,7 @@ para cada linha da matriz solucao (a terceira), foi criado, por meio do "fork()"
 atualizar as entradas da linha atual com a soma das entradas respectivas das outras duas matrizes. Em todos os casos,
 o processo pai esperou seu filho terminar para, enfim, exibir o estado da matriz solucao. O pai, entao, desatribuiu
 os ponteiros para memoria compartilhada com "shmdt" e removeu tais segmentos com "shmctl" ao passar a flag IPC_RMID.
-Por fim, eh encerrado com "return 0".
+Por fim, foi encerrado com "return 0".
 
 Cabe mencionar que, quando se manipularam as matrizes na regiao compartilhada, os processos funcionaram corretamente
 com o uso de aritmetica de ponteiros em detrimento de indexacao. O porque disso ainda nao nos eh sabido e, provavelmente,

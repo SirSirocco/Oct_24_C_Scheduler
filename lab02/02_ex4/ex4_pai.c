@@ -1,86 +1,81 @@
-#include <math.h>
-#include <stdlib.h>     // NULL
-#include <stdio.h>      // printf
-#include <sys/ipc.h>    // Inter-Process Communicaton -> IPC flags
-#include <sys/shm.h>    // Funcoes com prefixo "shm" (Shared Memory)
-#include <sys/stat.h>   // USR
-#include <sys/wait.h>   // waitpid
 #include <time.h>
-#include <unistd.h>     // fork
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/wait.h>
 
-#define M1 8572
-#define M2 8573
-#define TRUE 1
+
+#define SHM_SIZE 1024
+#define KEY1 8752
+#define KEY2 8753
+
+typedef struct
+{
+    int value;
+    int sequence;
+} SharedData;
 
 int main(void)
 {
-    int * m[2],
-        mkey[2] = {M1, M2},
-        // segmento[2],
-        // status,
-        pid,
-        tam = sizeof(mkey) / sizeof(mkey[0]);
-
-    char* file_name = "ex4_filho",
-        * argv[2] =
+    int shmid1 = shmget(KEY1, SHM_SIZE, IPC_CREAT | 0666);
+    int shmid2 = shmget(KEY2, SHM_SIZE, IPC_CREAT | 0666);
+    int last_seq1 = 0, last_seq2 = 0;
+    
+    if (shmid1 == -1 || shmid2 == -1)
     {
-        file_name,
-        NULL
-    };
-
-    for (int i = 0; i < tam; i++)
-    {
-        shmget(mkey[i], 2 * sizeof(int), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
-        m[i] = shmat(mkey[i], NULL, 0);
+        perror("shmget");
+        exit(1);
     }
-
-    for (int j = 0; j < tam; j++)
-    {
-        if ((pid = fork()) < 0) // Erro
-        {
-            puts("Erro ao criar processo");
-            exit(EXIT_FAILURE);
-        }
-
-        else if (pid == 0) // Filho
-        {
-            char str[2] = { j, '\0'};
-            argv[1] = str;
-            execv(file_name, argv);
-        }
-
-        else // Pai
-        {
-
-        }
+    
+    SharedData* m1 = (SharedData*)shmat(shmid1, NULL, 0);
+    SharedData* m2 = (SharedData*)shmat(shmid2, NULL, 0);
+    
+    if (m1 == (void*)-1 || m2 == (void*)-1) {
+        perror("shmat");
+        exit(1);
     }
+    
+    m1->sequence = 0;
+    m2->sequence = 0;
 
-    printf("Ola\n\n");
-
-    while (!*(m[0] + 1) || !*(m[1] + 1))
+    if (fork() == 0)
     {
-        if (*(m[0] + 1) == TRUE)
-        {
-            printf("valor do filho 1 recebido: %d\n", *m[0]);
-            sleep(1);
-        }
-
-        if (*(m[1] + 1) == TRUE)
-        {
-            printf("valor do filho 2 recebido: %d\n", *m[0]);
-            sleep(1);
-        }
+        execl("./ex4_p1", "ex4_p1", NULL);
     }
-
-    printf("valor do filho 1: %d\n", *m[0]);
-    printf("valor do filho 2: %d\n", *m[1]);
-    printf("produto dos valores: %d\n", (*m[0]) * (*m[1]));
-
-    for (int i = 0; i < tam; i++)
+    
+    if (fork() == 0)
     {
-        shmdt(m[i]);
-        shmctl(mkey[i], IPC_RMID, NULL);
+        execl("./ex4_p2", "ex4_p2", NULL);
     }
-
+    
+    while (1)
+    {
+        if (m1->sequence > last_seq1 && m2->sequence > last_seq2)
+        {
+            printf("Produto: %d\n\n", m1->value * m2->value);
+            last_seq1 = m1->sequence;
+            last_seq2 = m2->sequence;
+        }
+        usleep(100000); // Dorme por 100ms
+    }
+    
     return 0;
 }
+
+
+/*
+## Resposta ao exercicio
+
+Inicialmente foram alocadas e anexadas duas areas de memoria, "m1" e "m2", nas quais se armazenou
+a estrutura "SharedData", que armazena dois valores inteiros: um para compor a multiplicacao, o outro
+para indicar qual a posicao do valor atual na sequencia de numeros gerados. Dessa forma, depois de criar
+dois processos filhos, os campos de "m1" e de "m2" passam a ser atualizados a intervalos de tempo randomicos
+gracas ao uso de "sleep" associado a "rand". Simultaneamente, o pai fica em loop verificando se os dois filhos
+produziram valores. Se sim, exibe o produto dos valores armazenados na memoria compartilhada. Em seguida, dorme por 
+100 ms e itera o loop.
+
+Cabe mencionar que este programa corresponde a um belo exemplo de coordenacao entre multiplos processos, que se manifesta
+no uso da memoria compartilhada alocada pelo pai quanto por seus filhos.
+*/
