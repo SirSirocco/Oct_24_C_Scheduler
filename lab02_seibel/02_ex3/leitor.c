@@ -4,8 +4,8 @@
 #include <sys/shm.h>
 #include <sys/stat.h>
 
-#define KEY_ID 7000 // Identificador da memoria a ser anexada
-#define SHM_SIZE 4096
+#define KEY_ID 7000     // Identificador da memoria a ser anexada
+#define SHM_SIZE 4096   // Tamanho minimo da memoria a ser anexada
 
 int main(void)
 {
@@ -19,7 +19,7 @@ int main(void)
         exit(EXIT_FAILURE);
     }
 
-    shmptr = (char*)shmat(shmid, NULL, 0);
+    shmptr = (char*)shmat(shmid, NULL, 0); // Anexa-se a memoria
 
     if (shmptr == -1)
     {
