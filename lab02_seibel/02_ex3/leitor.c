@@ -4,7 +4,7 @@
 #include <sys/shm.h>
 #include <sys/stat.h>
 
-#define KEY_ID 7000 // Identificador da memoria a ser 
+#define KEY_ID 7000 // Identificador da memoria a ser anexada
 #define SHM_SIZE 4096
 
 int main(void)

@@ -9,6 +9,7 @@
 
 #define TAM_VET 10000
 #define NUM_FIL 2
+#define LIM_LOG 10
 
 int main(void)
 {
@@ -17,6 +18,7 @@ int main(void)
         pid,
         status,
         ref,
+        atual,
         count = 0;
     
     if (shmid == -1)
@@ -62,20 +64,32 @@ int main(void)
         wait(&status);
 
     ref = *(shmptr);
+    printf("# VALOR DE REFERENCIA: %d\n\n", ref);
 
     for (int i = 1; i < TAM_VET; i++)
     {
-        if (ref != *(shmptr + i))
+        atual = *(shmptr + i);
+        if (ref != atual)
         {
-            printf("Na posicao %4d, valor %d difere\n", i, *(shmptr + i));
+            printf("> Na posicao %4d, valor %d difere\n", i, atual);
             count++;
 
-            if (count >= 10) // Evita saturacao do log
+            if (count >= LIM_LOG) // Evita saturacao do log
+            {
+                puts("\n! Para evitar saturacao do log, nao serao exibidos os proximos divergentes\n");
+                status = i + 1;
                 break;
+            }
         }
     }
 
-    printf("VALOR DE REFERENCIA: %d\n", ref);
+    for (int i = status; i < TAM_VET; i++)
+    {
+        if (ref != *(shmptr + i))
+            count++;
+    }
+
+    printf("* TOTAL DE DIVERGENCIAS: %d\n", count);
 
     shmdt(shmptr);
     shmctl(shmid, IPC_RMID, NULL);
