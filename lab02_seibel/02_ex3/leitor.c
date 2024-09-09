@@ -19,7 +19,7 @@ int main(void)
         exit(EXIT_FAILURE);
     }
 
-    shmptr = (char*)shmat(shmid, NULL, 0); // Anexa-se a memoria
+    shmptr = (char*)shmat(shmid, NULL, 0); // Anexa-se a memoria compartilhada
 
     if (shmptr == -1)
     {
