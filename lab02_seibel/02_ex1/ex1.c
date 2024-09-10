@@ -6,8 +6,8 @@
 #include <sys/ipc.h>    // Inter-Process Communication
 #include <sys/wait.h>
 
-#define TAM_VET 10000
-#define NUM_FIL 10
+#define TAM_VET 10000   // Numero de posicoes do vetor
+#define NUM_FIL 10      // Numero de processos filhos (trabalhadores)
 
 int main(void)
 {
@@ -46,26 +46,26 @@ int main(void)
         }
         else if (pid == 0) // Filho
         {   
-            for (int j = i * (TAM_VET / NUM_FIL); j < (i + 1) * (TAM_VET / NUM_FIL); j++)
+            for (int j = i * (TAM_VET / NUM_FIL); j < (i + 1) * (TAM_VET / NUM_FIL); j++) // Acessa diferentes secoes do vetor em funcao do numero do filho
             {
                 *(shmptr + j) *= 2;
                 *(shmptr + TAM_VET) += *(shmptr + j);
             }
 
-            shmdt(shmptr);
+            shmdt(shmptr); // Desanexa da memoria compartilhada, mas sem a liberar
             exit(EXIT_SUCCESS);
         }
 
         else // Pai
         {
-            wait(&status);
+            wait(&status); // Pai espera filho atual terminar
             printf("Soma parcial %d: %d\n", i, *(shmptr + TAM_VET));
         }
     }
 
     printf("Soma total: %d\n", *(shmptr + TAM_VET));
-    shmdt(shmptr);
-    shmctl(shmid, IPC_RMID, NULL);
+    shmdt(shmptr); // Desanexa da memoria compartilhada
+    shmctl(shmid, IPC_RMID, NULL); // Libera memoria compartilhada com IPC_RMID
 
     return 0;
 }

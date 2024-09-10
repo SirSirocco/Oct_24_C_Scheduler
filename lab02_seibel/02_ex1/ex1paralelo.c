@@ -46,26 +46,26 @@ int main(void)
         }
         else if (pid == 0) // Filho
         {   
-            for (int j = i * (TAM_VET / NUM_FIL); j < (i + 1) * (TAM_VET / NUM_FIL); j++)
+            for (int j = i * (TAM_VET / NUM_FIL); j < (i + 1) * (TAM_VET / NUM_FIL); j++) // Acessa diferentes secoes do vetor em funcao do numero do filho
             {
                 *(shmptr + j) *= 2;
                 *(shmptr + TAM_VET) += *(shmptr + j);
             }
 
-            shmdt(shmptr);
+            shmdt(shmptr); // Desanexa da memoria compartilhada, mas sem a liberar
             exit(EXIT_SUCCESS);
         }
     }
     
-    for (int i = 0; i < NUM_FIL; i++) // Pai espera filhos terminarem e exibe soma parcial
+    for (int i = 0; i < NUM_FIL; i++) // Pai espera filhos terminarem e exibe soma parcial a cada filho que termina
     {
         wait(&status);
         printf("Soma parcial %d: %d\n", i, *(shmptr + TAM_VET));
     }
 
     printf("Soma total: %d\n", *(shmptr + TAM_VET));
-    shmdt(shmptr);
-    shmctl(shmid, IPC_RMID, NULL);
+    shmdt(shmptr); // Desanexa da memoria compartilhada
+    shmctl(shmid, IPC_RMID, NULL); // Libera memoria compartilhada com IPC_RMID
 
     return 0;
 }
