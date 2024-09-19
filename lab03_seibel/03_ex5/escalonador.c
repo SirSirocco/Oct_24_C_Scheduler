@@ -38,7 +38,7 @@ int main(void)
     {
         i %= NUM_FIL;               // Percorre ciclicamente os filhos
         kill(pid[i], SIGCONT);      // Continua filho atual
-        sleep(1);                   // Espera 1 segundo
+        sleep(ESCLN_T);             // Espera 1 segundo
         kill(pid[i++], SIGSTOP);    // Pausa filho atual, depois atualiza filho
     }
 }

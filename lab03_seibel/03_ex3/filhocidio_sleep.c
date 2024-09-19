@@ -4,8 +4,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define TEMPO 2
-#define RIP_FILHO -2 // Indica que filho foi morto
+#define TEMPO 2         // Em segundos
+#define RIP_FILHO -2    // Indica que filho foi morto
 
 void childHandler(int sinal);
 

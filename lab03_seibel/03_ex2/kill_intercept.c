@@ -5,8 +5,9 @@
 #include <unistd.h>
 
 #define EVER ;;
-#define TEMPO 3
+#define TEMPO 3 // Em segundos
 
+void usrHandler(int sinal);
 void killHandler(int sinal);
 
 int main(void)
@@ -21,13 +22,20 @@ int main(void)
     }
     else if (pid == 0) // Filho
     {
-        signal(SIGKILL, killHandler); // Filho tenta escapar da morte
+        signal(SIGUSR1, usrHandler);    // Filho recebe sinal teste
+        signal(SIGKILL, killHandler);   // Filho tenta escapar da morte
         for (EVER);
     }
     else // Pai
     {
         sleep(TEMPO);
+        kill(pid, SIGUSR1);
+        
+        sleep(TEMPO);
         kill(pid, SIGKILL); // Mata processo filho
+        
+        sleep(TEMPO);
+        kill(pid, SIGUSR1);
 
         waitpid(pid, &status, 0); // Atualiza status
         /*
@@ -41,6 +49,12 @@ int main(void)
     }
 
     return 0;
+}
+
+// Trata SIGUSR1 (10)
+void usrHandler(int sinal)
+{
+    puts("Recebido sinal de usuario 1");
 }
 
 // Trata (ou, ao menos, tenta) SIGKILL (9)

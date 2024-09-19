@@ -14,7 +14,7 @@ int main(void)
 {
     float f1, f2;
 
-    signal(SIGFPE, fpeHandler); // Floating Point Error
+    signal(SIGFPE, fpeHandler); // Floating Point Exception
 
     printf("Informe os dois numeros reais: ");
     scanf("%f %f", &f1, &f2);
@@ -28,9 +28,9 @@ int main(void)
     return 0;
 }
 
-// Trata Floating Point Error (FPE = 8)
+// Trata Floating Point Exception (FPE = 8)
 void fpeHandler(int sinal)
 {
-    puts("\nErro de ponto flutuante detectado!");
+    puts("\nExcecao de ponto flutuante detectada!");
     exit(EXIT_FAILURE);
 }

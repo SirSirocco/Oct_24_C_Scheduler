@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
+
 #define TEMPO 2
 #define EVER ;;
 
@@ -10,7 +11,7 @@ int main(void)
 {
     signal(SIGALRM, trataAlarme);
     alarm(TEMPO);
-    for(EVER);
+    for (EVER);
     return 0;
 }
 
