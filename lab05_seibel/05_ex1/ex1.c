@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#define NUM_THREAD 10                       // Numero de tarefas trabalhadoras
-#define TAM_VET 10000                       // Numero de posicoes do vetor
-#define TAM_THREAD (TAM_VET / NUM_THREAD)   // Numero de posicoes atualizadas por trabalhador
+#define NUM_THREAD 100                      // Numero de tarefas trabalhadoras
+#define TAM_VET 100000                      // Numero de posicoes do vetor
+#define TAM_THREAD (TAM_VET / NUM_THREAD)   // Numero de posicoes atualizadas por cada trabalhadora
 
 void* atualizaVetorSoma(void* tid);
 
@@ -25,12 +25,16 @@ int main(void)
     for (int tid = 0; tid < NUM_THREAD; tid++) // Espera cada tarefa terminar e exibe o estado de "soma"
     {
         pthread_join(thread[tid], NULL);
-        printf("Thread %d - soma %llu\n", tid, soma);
+        printf("* Thread %-5d - Soma: %llu\n", tid, soma);
     }
+
+    printf(">>> Soma total: %llu\n", soma);
 
     return 0;
 }
 
+// Rotina a ser executada pelas threads
+// Multiplica cada entrada de "vetor" por 2 e adiciona o valor atualizado a "soma"
 void* atualizaVetorSoma(void* tid)
 {
     int n = (int)tid;

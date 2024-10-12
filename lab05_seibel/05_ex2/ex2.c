@@ -3,7 +3,7 @@
 #include <unistd.h>
 
 #define TAM_VET 100000      // Numero de posicoes do vetor
-#define NUM_THREAD 1000     // Numero de tarefas
+#define NUM_THREAD 100      // Numero de tarefas
 #define COUNT_THRESH 10     // Limite de mensagens exibidas no log
 #define USLEEP_T 3          // Tempo de espera (em microsegundos)
 
@@ -39,7 +39,7 @@ int main(void)
     {
         if ((atual = vetor[i]) != ref)
         {
-            printf("%-5d - Valor %llu difere da referencia\n", i, atual);
+            printf("%-5d - Difere da referencia o valor %llu\n", i, atual);
 
             if (++count >= COUNT_THRESH) // Evita saturacao do log
             {
@@ -63,12 +63,14 @@ int main(void)
     return 0;
 }
 
+// Rotina a ser executada pelas threads
+// Multiplica cada entrada de vetor por 2, e a seguir, a incrementa em 2 (antes de atualizar a proxima)
 void* atualizaVetor(void* tid)
 {
     for (int i = 0; i < TAM_VET; i++)
     {
         vetor[i] *= 2;
-        // usleep(USLEEP_T);
+        // usleep(USLEEP_T); // Descomente para aumentar chance de valores diferentes
         vetor[i] += 2;
     }
 
