@@ -1,5 +1,4 @@
 typedef struct queue Queue;
-typedef struct node Node;
 typedef int hotspot;
 
 Queue* enqueue(hotspot val, Queue* queue);

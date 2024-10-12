@@ -14,6 +14,21 @@ struct queue
     struct node* last;
 };
 
+// Creates new node, but does not initialize it.
+// In case of memory failure, terminates the program.
+static struct node* create_node(void)
+{
+    struct node* node = (struct node*)malloc(sizeof(struct node));
+
+    if (!node)
+    {
+        perror("malloc_node");
+        exit(EXIT_FAILURE);
+    }
+
+    return node;
+}
+
 // Adds element to end of queue.
 // If queue is NULL, creates new queue.
 struct queue* enqueue(hotspot val, struct queue* queue)
@@ -30,24 +45,10 @@ struct queue* enqueue(hotspot val, struct queue* queue)
     }
 
     if (!queue->last) // Empty queue
-    {
-        queue->first = queue->last = (struct node*)malloc(sizeof(struct node));
-
-        if (!queue->last)
-        {
-            perror("malloc_node");
-            exit(EXIT_FAILURE);
-        }
-    }
+        queue->first = queue->last = create_node();
     else // Non-empty queue
     {
-        queue->last->next = (struct node*)malloc(sizeof(struct node));
-        
-        if (!queue->last->next)
-        {
-            perror("malloc_node");
-            exit(EXIT_FAILURE);
-        }
+        queue->last->next = create_node();
 
         // New node is now last
         queue->last = queue->last->next;
@@ -80,7 +81,7 @@ hotspot dequeue(struct queue* queue)
     aux = queue->first;
     queue->first = queue->first->next;
 
-    if (!queue->first)
+    if (!queue->first) // Queue had only one element
         queue->last = NULL;
 
     val = aux->val;
@@ -111,7 +112,7 @@ void print_queue(struct queue* queue)
 {
     struct node* aux;
     
-    if (!queue)
+    if (!queue) // If queue does not exist, prints nothing
         return;
     
     aux = queue->first;
