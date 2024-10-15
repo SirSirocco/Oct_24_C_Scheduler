@@ -1,4 +1,4 @@
-#include "queue.h"
+#include "pcbqueue.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -14,6 +14,13 @@ struct queue
     struct node* last;
 };
 
+// Prints error message and exits with EXIT_FAILURE.
+static void error(const char* msg)
+{
+    perror(msg);
+    exit(EXIT_FAILURE);
+}
+
 // Creates new node, but does not initialize it.
 // In case of memory failure, terminates the program.
 static struct node* create_node(void)
@@ -21,10 +28,7 @@ static struct node* create_node(void)
     struct node* node = (struct node*)malloc(sizeof(struct node));
 
     if (!node)
-    {
-        perror("malloc_node");
-        exit(EXIT_FAILURE);
-    }
+        error("malloc_node");
 
     return node;
 }
@@ -38,10 +42,7 @@ struct queue* enqueue(hotspot val, struct queue* queue)
         queue = (struct queue*)malloc(sizeof(struct queue));
         
         if (!queue)
-        {
-            perror("malloc_queue");
-            exit(EXIT_FAILURE);
-        }
+            error("malloc_queue");
     }
 
     if (!queue->last) // Empty queue
@@ -122,4 +123,26 @@ void print_queue(struct queue* queue)
         printf("Addrs: %p\nVal: %-4d\nNext: %p\n\n", aux, aux->val, aux->next);
         aux = aux->next;
     }
+}
+
+// Creates new pcb.
+PCB* new_pcb(pid_t pid, int pc, const char* arg0, const char* arg1)
+{
+    PCB* pcb = (PCB*)malloc(sizeof(PCB));
+
+    if (!pcb)
+        error("malloc_pcb");
+
+    pcb->pid = pid;
+    pcb->pc = pc;
+    pcb->syscallargs[0] = arg0;
+    pcb->syscallargs[1] = arg1;
+
+    return pcb;
+}
+
+// Liberates all memory of pcb.
+void free_pcb(PCB* pcb)
+{
+    free(pcb);
 }
