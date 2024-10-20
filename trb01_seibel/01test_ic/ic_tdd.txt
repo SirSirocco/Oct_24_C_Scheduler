@@ -17,21 +17,3 @@ interruptController
     Coloque um print no pai toda vez que este receber o sinal de time slice e cronometre
     o tempo.
 }
-
-a
-{
-    pc:
-    A.:
-    Queremos testar se o pc está sendo salvo adequadamente.
-
-    S.:
-    Coloque um print no filho toda vez que restaurar contexto.
-
-    syscall:
-
-    A.:
-    Queremos testar se os argumentos da syscall estão sendo salvos adequadamente.
-
-    S.:
-    Coloque um print no filho toda vez que restaurar contexto.
-}

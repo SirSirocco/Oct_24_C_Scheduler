@@ -6,7 +6,7 @@
 
 #define TRUE 1
 #define TIME 2
-#define INT_CTL_PATH "./interruptController"
+#define INT_CTL_PATH "./inter_control"
 
 void timeSliceHandler(int signal);
 void ioInterruptHandler(int signal);

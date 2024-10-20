@@ -1,7 +1,6 @@
 #include "pcbqueue.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 struct node
 {
@@ -34,22 +33,18 @@ static struct node* create_node(void)
     return node;
 }
 
-// Creates new queue.
-struct queue* new_queue(void)
-{
-    Queue* queue = (struct queue*)malloc(sizeof(struct queue));
-        
-    if (!queue)
-        error("malloc_queue");
-
-    queue->first = queue->last = NULL;
-
-    return queue;
-}
-
 // Adds element to end of queue.
+// If queue is NULL, creates new queue.
 struct queue* enqueue(hotspot val, struct queue* queue)
 {
+    if (!queue) // Creates queue
+    {
+        queue = (struct queue*)malloc(sizeof(struct queue));
+        
+        if (!queue)
+            error("malloc_queue");
+    }
+
     if (!queue->last) // Empty queue
         queue->first = queue->last = create_node();
     else // Non-empty queue
@@ -74,13 +69,13 @@ hotspot dequeue(struct queue* queue)
 
     if (!queue)
     {
-        // fprintf(stderr, "\nError: Queue does not exist.\n");
+        fprintf(stderr, "\nError: Queue does not exist.\n");
         return NULL;
     }
 
     if (!queue->first)
     {
-        // fprintf(stderr, "\nWarning: Empty queue.\n");
+        fprintf(stderr, "\nWarning: Empty queue.\n");
         return NULL;
     }
 
@@ -123,10 +118,8 @@ PCB* new_pcb(pid_t pid, int pc, char* arg0, char* arg1)
 
     pcb->pid = pid;
     pcb->pc = pc;
-    if (arg0)
-        strcpy(pcb->syscallarg[0], arg0);
-    if (arg1)
-        strcpy(pcb->syscallarg[1] , arg1);
+    pcb->syscallarg[0] = arg0;
+    pcb->syscallarg[1] = arg1;
 
     return pcb;
 }

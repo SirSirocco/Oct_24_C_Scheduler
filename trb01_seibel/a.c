@@ -4,33 +4,35 @@
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <string.h>
 
 #define SYSC_ARGC   2
 #define OFFSET_C    3       // Number of elements in offset vector  
-#define MAX_ITER    1000000
-#define R_ITER      10000
-#define W_ITER      20000
+#define MAX_ITER    10
+#define R_ITER      3
+#define W_ITER      6
+#define ITER_T      2
 
 static void error(const char* msg);
 void systemcall(char* stream, char* mode);
-void cont_handler(int signal);
 
 int shm_offset_v[OFFSET_C], // Shared memory offsets in bytes with respect to shmptrbase (0 -> pc, 1 -> syscall_arg0, 2 -> syscall_arg1)
-    syscount = 0,           // Counter of active system calls
     *pc;                    // Program Counter
 
-pid_t parent; // Scheduler (kernel)
+pid_t this, parent; // Scheduler (kernel)
 
 void* shmptrbase; // Base of shared memory
 
-char **syscallarg[SYSC_ARGC];
+char* syscallarg[SYSC_ARGC];
 
 int main(int argc, char** argv)
 {
     int shmid = atoi(argv[0]);
 
-    signal(SIGCONT, cont_handler);
+    // signal(SIGCONT, cont_handler);
 
+    this = getpid();
+    // printf("%d\n", this);
     parent = getppid(); // Get parent process's PID
 
     if ((shmptrbase = shmat(shmid, NULL, 0)) == (void*)-1) // Attach to shared memory
@@ -43,18 +45,27 @@ int main(int argc, char** argv)
     pc = (int*)(shmptrbase + shm_offset_v[0]);
     
     for (int i = 0; i < SYSC_ARGC; i++)
-        syscallarg[i] = (char**)(shmptrbase + shm_offset_v[i + 1]);
+        syscallarg[i] = (char*)(shmptrbase + shm_offset_v[i + 1]);
 
     for (; *pc < MAX_ITER; (*pc)++)
     {
         if (*pc == R_ITER)
+        {
+            // printf("%d\n", this);
             systemcall("D1", "R");
+            // printf("PID %d: Finished systemcall(%s, %s)\n",  this, syscallarg[0], syscallarg[1]);
+        }
         if (*pc == W_ITER)
+        {
+            // printf("%d\n", this);
             systemcall("D1", "W");
+        }
+
+        sleep(ITER_T);
     }
 
     shmdt(shmptrbase); // Detach from shared memory (does not remove shm)
-    exit(EXIT_SUCCESS);
+    exit(this);
 }
 
 // Prints error message and exits with EXIT_FAILURE.
@@ -69,19 +80,9 @@ static void error(const char* msg)
 // Mode can be "R" (read) or "W" (write).
 void systemcall(char* stream, char* mode)
 {
-    syscount++;
-    *((char**)(shmptrbase + shm_offset_v[1])) = stream;
-    *((char**)(shmptrbase + shm_offset_v[2])) = mode;
+    strcpy(syscallarg[0], stream);
+    strcpy(syscallarg[1], mode);
     kill(parent, SIGSYS);
-    pause();
-    syscount--;
-}
-
-// Handles SIGCONT.
-// Restores process context.
-void cont_handler(int signal)
-{
-    *pc = *((int*)(shmptrbase + shm_offset_v[0]));
-    if (syscount > 0)
-        printf("Executing syscall(%s, %s)\n",  syscallarg[0], syscallarg[1]);
+    // pause();
+    puts("oi");
 }

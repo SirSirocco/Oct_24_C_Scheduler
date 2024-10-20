@@ -6,6 +6,7 @@
 #include <sys/shm.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
 #define TRUE 1
 #define INT_CTL_PATH    "./inter_control"
@@ -27,17 +28,17 @@ PCB* init(int p_count, const char* path, char** argv);
 int shm_offset_v[ARGC] = { 0, 100, 200 },
     *pc;
 
-char shmidbuf[BUF_SIZE];
+char shmidbuf[BUF_SIZE],
      *argv[ARGC] = { shmidbuf, "0", "100", "200", NULL },
-     **syscallarg[SYSC_ARGC];
+     *syscallarg[SYSC_ARGC];
 
 void *shmptrbase; // Base of shared memory
 
-PCB *current_pcb;       // Process Control Board of the current process
+PCB *current_pcb,       // Process Control Board of the current process
     *inter_control_pcb; // PCB of Interrupt controller
 
-Queue *ready, // Processes in ready state
-      *wait;  // Processes in wait  state
+Queue *ready_q, // Processes in ready state
+      *wait_q;  // Processes in wait  state
 
 int main(void)
 {
@@ -47,7 +48,7 @@ int main(void)
     signal(SIGIRQ2, iointerrupt_handler);
     signal(SIGSYS, syscall_handler);
 
-    if ((shmid = shmget(IPC_CREAT, PAGE, S_IRWXU)) == -1)
+    if ((shmid = shmget(IPC_PRIVATE, PAGE, IPC_CREAT | S_IRWXU)) == -1)
         error("shmid");
     
     if ((shmptrbase = shmat(shmid, NULL, 0)) == (void*)-1)
@@ -59,17 +60,17 @@ int main(void)
     pc = (int*)(shmptrbase + shm_offset_v[0]);
     
     for (int i = 0; i < SYSC_ARGC; i++)
-        syscallarg[i] = (char**)(shmptrbase + shm_offset_v[i + 1]);
+        syscallarg[i] = (char*)(shmptrbase + shm_offset_v[i + 1]);
 
     // Allocate queues
-    ready = enqueue(NULL, NULL);
-    wait = enqueue(NULL, NULL);
+    ready_q = new_queue();
+    wait_q = new_queue();
 
     // Interrupt Controller
     inter_control_pcb = new_process(INT_CTL_PATH, NULL);
 
     // Processes to be scheduled
-    current_pcb = init(PATH, NUM_PRCS, argv);
+    current_pcb = init(NUM_PRCS, PATH, argv);
     kill(current_pcb->pid, SIGCONT);
 
     // Scheduling
@@ -98,54 +99,97 @@ PCB* new_process(const char* path, char** argv)
 
 PCB* init(int p_count, const char* path, char** argv)
 {
-    PCB* first = new_process(path, argv);
+    puts("init");
+    PCB* first, *current;
+    first = new_process(path, argv);
     kill(first->pid, SIGSTOP);
+    printf("PID %d\n", first->pid);
 
     for (int i = 1; i < p_count; i++)
     {
-        enqueue(new_process(path, argv), ready);
-        kill(first->pid, SIGSTOP);
+        enqueue((current = new_process(path, argv)), ready_q);
+        kill(current->pid, SIGSTOP);
+        printf("PID %d\n", current->pid);
     }
 
     return first;
 }
 
-void context_swap(void)
+void context_save(Queue* enq)
 {
     if (current_pcb)
     {
-        kill(SIGSTOP, current_pcb->pid);
+        kill(current_pcb->pid, SIGSTOP);
+        printf("PID %d stopped\n", current_pcb->pid);
         current_pcb->pc = *pc;
-        current_pc->syscallarg
+        // for (int i = 0; i < SYSC_ARGC; i++)
+        //     strcpy(current_pcb->syscallarg[i], syscallarg[i]);
+        enqueue(current_pcb, enq);
     }
+}
 
-    enqueue(current_pcb, ready);
-    current_pcb = dequeue(ready);
+void context_swap(Queue* deq)
+{
+    current_pcb = dequeue(deq);
 
     if (current_pcb)
     {
-        kill(SIGCONT, current_pcb->pid);
         *pc = current_pcb->pc;
+        printf("%d \n", *pc);
+        kill(current_pcb->pid, SIGCONT);
+        // for (int i = 0; i < SYSC_ARGC; i++)
+        //     syscallarg[i] = current_pcb->syscallarg[i];
+        printf("PID %d continued\n", current_pcb->pid);
     }
+    else
+        puts("idle");
 }
 
 // Handles end of time_slice.
 // Swaps the context to next ready process.
 void timeslice_handler(int signal)
 {
-    context_swap();
+    kill(inter_control_pcb->pid, SIGSTOP);
+    context_save(ready_q);
+    context_swap(ready_q);
+    kill(inter_control_pcb->pid, SIGCONT);
+    // puts("ts");
 }
 
 // Handles a syscall.
 // Swaps the context to next ready process.
 void syscall_handler(int signal)
 {
-   context_swap(); 
+    kill(inter_control_pcb->pid, SIGSTOP);
+    strcpy(current_pcb->syscallarg[0], syscallarg[0]);
+    strcpy(current_pcb->syscallarg[1], syscallarg[1]);
+    context_save(wait_q);
+    printf("PID %d requests systemcall(%s, %s)\n", current_pcb->pid, current_pcb->syscallarg[0], current_pcb->syscallarg[1]);
+    context_swap(ready_q);
+    kill(inter_control_pcb->pid, SIGCONT);
+    kill(inter_control_pcb->pid, SIGIRQ2);
 }
 
 // Dequeues from wait and enqueues in ready.
 // Handles finishing of an IO operation.
 void iointerrupt_handler(int signal)
 {
-    enqueue(dequeue(wait), ready);
+    PCB* pcb;
+    kill(inter_control_pcb->pid, SIGSTOP);
+    // dequeue(wait_q);
+    pcb = dequeue(wait_q);
+    printf("%d\n", pcb->pid);
+    printf("PID %d's systemcall(%s, %s) finished\n", pcb->pid, pcb->syscallarg[0], pcb->syscallarg[1]);
+    enqueue(pcb, ready_q);
+    kill(inter_control_pcb->pid, SIGCONT);
+}
+
+void child_handler(int signal)
+{
+    pid_t pid;
+    kill(inter_control_pcb->pid, SIGSTOP);
+    wait(&pid);
+    printf("PID %d has finished\n", pid);
+
+    kill(inter_control_pcb->pid, SIGCONT);
 }
