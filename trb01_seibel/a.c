@@ -1,10 +1,10 @@
 #include "mysignal.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <string.h>
 
 #define SYSC_ARGC   2
 #define OFFSET_C    3       // Number of elements in offset vector  
@@ -50,22 +50,16 @@ int main(int argc, char** argv)
     for (; *pc < MAX_ITER; (*pc)++)
     {
         if (*pc == R_ITER)
-        {
-            // printf("%d\n", this);
             systemcall("D1", "R");
-            // printf("PID %d: Finished systemcall(%s, %s)\n",  this, syscallarg[0], syscallarg[1]);
-        }
+        
         if (*pc == W_ITER)
-        {
-            // printf("%d\n", this);
             systemcall("D1", "W");
-        }
 
         sleep(ITER_T);
     }
 
     shmdt(shmptrbase); // Detach from shared memory (does not remove shm)
-    exit(this);
+    exit(EXIT_SUCCESS);
 }
 
 // Prints error message and exits with EXIT_FAILURE.
@@ -83,6 +77,4 @@ void systemcall(char* stream, char* mode)
     strcpy(syscallarg[0], stream);
     strcpy(syscallarg[1], mode);
     kill(parent, SIGSYS);
-    // pause();
-    puts("oi");
 }

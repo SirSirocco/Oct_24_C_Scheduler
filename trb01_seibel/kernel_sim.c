@@ -2,19 +2,19 @@
 #include "pcbqueue.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <string.h>
 
 #define TRUE 1
 #define INT_CTL_PATH    "./inter_control"
 #define PATH            "./a"
-#define NUM_PRCS        1       // Number of processes
-#define ARGC            5
+#define NUM_PRCS        3       // Number of processes
+#define ARGC            6
 #define SYSC_ARGC       2
-#define OFFSET_C        3       // Number of elements in offset vector   
+#define OFFSET_C        4       // Number of elements in offset vector   
 #define PAGE            4096    // byte(s)
 #define BUF_SIZE        64      // byte(s)
 
@@ -25,11 +25,11 @@ void syscall_handler(int signal);
 PCB* new_process(const char* path, char** argv);
 PCB* init(int p_count, const char* path, char** argv);
 
-int shm_offset_v[ARGC] = { 0, 100, 200 },
+int shm_offset_v[ARGC] = { 0, 100, 200, 300 },
     *pc;
 
 char shmidbuf[BUF_SIZE],
-     *argv[ARGC] = { shmidbuf, "0", "100", "200", NULL },
+     *argv[ARGC] = { shmidbuf, "0", "100", "200", "300", NULL },
      *syscallarg[SYSC_ARGC];
 
 void *shmptrbase; // Base of shared memory
@@ -117,24 +117,33 @@ PCB* init(int p_count, const char* path, char** argv)
 
 void context_save(Queue* enq)
 {
-    if (current_pcb)
-    {
-        kill(current_pcb->pid, SIGSTOP);
-        printf("PID %d stopped\n", current_pcb->pid);
-        current_pcb->pc = *pc;
-        // for (int i = 0; i < SYSC_ARGC; i++)
-        //     strcpy(current_pcb->syscallarg[i], syscallarg[i]);
-        enqueue(current_pcb, enq);
-    }
+    if (!current_pcb)
+        return;
+    
+    kill(current_pcb->pid, SIGSTOP);
+    printf("PID %d stopped\n", current_pcb->pid);
+    current_pcb->pc = *pc;
+    // for (int i = 0; i < SYSC_ARGC; i++)
+    //     strcpy(current_pcb->syscallarg[i], syscallarg[i]);
+    enqueue(current_pcb, enq);
 }
 
 void context_swap(Queue* deq)
 {
+    int status;
     current_pcb = dequeue(deq);
 
     if (current_pcb)
     {
+        if (current_pcb->pid == waitpid(current_pcb->pid, &status, WNOHANG))
+        {
+            printf("PID %d has finished\n", current_pcb->pid);
+            free_pcb(current_pcb);
+            current_pcb = NULL;
+            return;
+        }
         *pc = current_pcb->pc;
+        // *status = current_pcb->status;
         printf("%d \n", *pc);
         kill(current_pcb->pid, SIGCONT);
         // for (int i = 0; i < SYSC_ARGC; i++)
@@ -184,12 +193,3 @@ void iointerrupt_handler(int signal)
     kill(inter_control_pcb->pid, SIGCONT);
 }
 
-void child_handler(int signal)
-{
-    pid_t pid;
-    kill(inter_control_pcb->pid, SIGSTOP);
-    wait(&pid);
-    printf("PID %d has finished\n", pid);
-
-    kill(inter_control_pcb->pid, SIGCONT);
-}

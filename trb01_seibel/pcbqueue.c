@@ -22,6 +22,55 @@ static void error(const char* msg)
     exit(EXIT_FAILURE);
 }
 
+// Creates new pcb.
+PCB* new_pcb(pid_t pid, int pc, char* arg0, char* arg1)
+{
+    PCB* pcb = (PCB*)malloc(sizeof(PCB));
+
+    if (!pcb)
+        error("malloc_pcb");
+
+    pcb->pid = pid;
+    pcb->pc = pc;
+
+    if (arg0) // If arg not NULL
+        strcpy(pcb->syscallarg[0], arg0); // Copies content of arg
+    else
+        pcb->syscallarg[0][0] = '\0'; // syscallarg will be empty string
+    
+    if (arg1)
+        strcpy(pcb->syscallarg[1] , arg1);
+    else
+        pcb->syscallarg[1][0] = '\0';
+
+    return pcb;
+}
+
+// Prints pcb elements.
+void print_pcb(PCB* pcb)
+{
+    if (!pcb)
+    {
+        fprintf(stderr, "Empty PCB.\n");
+        return;
+    }
+
+    printf("PID: %d\n", pcb->pid);
+    printf("PC: %d\n", pcb->pc);
+    printf("syscallargs:");
+
+    for (int i = 0; i < SYSC_ARGS - 1; i++)
+        printf(" %s,", pcb->syscallarg[i]);
+    
+    printf(" %s\n", pcb->syscallarg[SYSC_ARGS - 1]);
+}
+
+// Liberates all memory of pcb.
+void free_pcb(PCB* pcb)
+{
+    free(pcb);
+}
+
 // Creates new node, but does not initialize it.
 // In case of memory failure, terminates the program.
 static struct node* create_node(void)
@@ -37,7 +86,7 @@ static struct node* create_node(void)
 // Creates new queue.
 struct queue* new_queue(void)
 {
-    Queue* queue = (struct queue*)malloc(sizeof(struct queue));
+    struct queue* queue = (struct queue*)malloc(sizeof(struct queue));
         
     if (!queue)
         error("malloc_queue");
@@ -72,18 +121,19 @@ hotspot dequeue(struct queue* queue)
     struct node* aux;
     hotspot val;
 
-    if (!queue)
+    if (!queue) // Queue does not exist
     {
         // fprintf(stderr, "\nError: Queue does not exist.\n");
         return NULL;
     }
 
-    if (!queue->first)
+    if (!queue->first) // Empty queue
     {
         // fprintf(stderr, "\nWarning: Empty queue.\n");
         return NULL;
     }
 
+    // Non-empty queue
     aux = queue->first;
     queue->first = queue->first->next;
 
@@ -91,7 +141,7 @@ hotspot dequeue(struct queue* queue)
         queue->last = NULL;
 
     val = aux->val;
-    free(aux);
+    free(aux); // Frees memory used by node
 
     return val;
 }
@@ -111,39 +161,4 @@ void free_queue(struct queue* queue)
     }
 
     free(queue);
-}
-
-// Creates pcb.
-PCB* new_pcb(pid_t pid, int pc, char* arg0, char* arg1)
-{
-    PCB* pcb = (PCB*)malloc(sizeof(PCB));
-
-    if (!pcb)
-        error("malloc_pcb");
-
-    pcb->pid = pid;
-    pcb->pc = pc;
-    if (arg0)
-        strcpy(pcb->syscallarg[0], arg0);
-    if (arg1)
-        strcpy(pcb->syscallarg[1] , arg1);
-
-    return pcb;
-}
-
-void print_pcb(PCB* pcb)
-{
-    if (!pcb)
-    {
-        fprintf(stderr, "Empty PCB.\n");
-        return;
-    }
-
-    printf("PID: %d\nPC: %d\nsyscallargs: %s, %s\n\n", pcb->pid, pcb->pc, pcb->syscallarg[0], pcb->syscallarg[1]);
-}
-
-// Liberates all memory of pcb.
-void free_pcb(PCB* pcb)
-{
-    free(pcb);
 }
