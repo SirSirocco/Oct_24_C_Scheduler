@@ -6,33 +6,35 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define SYSC_ARGC   2
-#define OFFSET_C    3       // Number of elements in offset vector  
-#define MAX_ITER    10
-#define R_ITER      3
-#define W_ITER      6
-#define ITER_T      2
+#define SYSC_ARGC   2   // Number of system call arguments
+#define OFFSET_C    3   // Number of elements in offset vector  
+#define MAX_ITER    10  // Number of iterations
+#define R_ITER      3   // Iteration in which read syscall is requested
+#define W_ITER      6   // Iteration in which write syscall is requested
+#define ITER_T      1   // Time of iteration (in seconds)
 
+/* PROTOTYPES */
 static void error(const char* msg);
 void systemcall(char* stream, char* mode);
+void cont_handler(int signal);
 
-int shm_offset_v[OFFSET_C], // Shared memory offsets in bytes with respect to shmptrbase (0 -> pc, 1 -> syscall_arg0, 2 -> syscall_arg1)
-    *pc;                    // Program Counter
+/* GLOBAL VARIABLES */
+int shm_offset_v[OFFSET_C]; // Shared memory offsets in bytes with respect to shmptrbase (0 -> pc, 1 -> syscall_arg0, 2 -> syscall_arg1)
+int* pc; // Program Counter: counts iterations
 
-pid_t this, parent; // Scheduler (kernel)
+pid_t parent; // Scheduler (kernel)
 
 void* shmptrbase; // Base of shared memory
 
-char* syscallarg[SYSC_ARGC];
+char* syscallarg[SYSC_ARGC]; // System call arguments
 
+/* FUNCTIONS */
 int main(int argc, char** argv)
 {
     int shmid = atoi(argv[0]);
 
-    // signal(SIGCONT, cont_handler);
+    signal(SIGCONT, cont_handler);
 
-    this = getpid();
-    // printf("%d\n", this);
     parent = getppid(); // Get parent process's PID
 
     if ((shmptrbase = shmat(shmid, NULL, 0)) == (void*)-1) // Attach to shared memory
@@ -47,6 +49,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < SYSC_ARGC; i++)
         syscallarg[i] = (char*)(shmptrbase + shm_offset_v[i + 1]);
 
+    // Iterations
     for (; *pc < MAX_ITER; (*pc)++)
     {
         if (*pc == R_ITER)
@@ -77,4 +80,9 @@ void systemcall(char* stream, char* mode)
     strcpy(syscallarg[0], stream);
     strcpy(syscallarg[1], mode);
     kill(parent, SIGSYS);
+    pause();
+}
+
+void cont_handler(int signal)
+{
 }

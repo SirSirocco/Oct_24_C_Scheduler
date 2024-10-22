@@ -3,7 +3,7 @@
 #include <sys/wait.h>   // pid_t
 
 #define SYSC_ARGS 2     // Number of system call arguments
-#define BUFF_SIZE 64    // Buffer size
+#define BUFF_SIZE 64    // byte(s)
 
 struct pcb // Process Control Board
 {
