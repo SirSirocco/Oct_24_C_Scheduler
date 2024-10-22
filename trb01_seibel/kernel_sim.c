@@ -9,8 +9,8 @@
 #include <unistd.h>
 
 #define TRUE 1
-#define INT_CTL_PATH    "./inter_control"
-#define PATH            "./a"
+#define INT_CTL_PATH    "./inter_control" // Path of Interrupt Controller
+#define PATH            "./a"   // Path of child processes to be scheduled
 #define NUM_PRCS        6       // Number of processes
 #define ARGC            5       // Number of elements in argv
 #define SYSC_ARGC       2       // Number of system call arguments
@@ -27,15 +27,15 @@ PCB*        new_process(const char* path, char** argv);
 PCB*        init(int p_count, const char* path, char** argv);
 
 /* GLOBAL VARIABLES */
-int process_count;
-int shm_offset_v[ARGC] = { 0, 100, 200 }; // Shared memory offsets in bytes with respect to shmptrbase (0 -> pc, 1 -> syscall_arg0, 2 -> syscall_arg1)
-int* pc; // Program Counter
+int process_count; // Counts number of processes still in scheduling.
+int shm_offset_v[ARGC] = { 0, 100, 200 }; // Shared memory offsets in bytes with respect to shmptrbase (0 -> pc, 1 -> syscall_arg0, 2 -> syscall_arg1).
+int* pc; // Program Counter.
 
 char shmidbuf[BUF_SIZE]; // Buffer that contains shmid in string form.
 char* argv[ARGC] = { shmidbuf, "0", "100", "200", NULL }; // Vector of arguments sent to child processes.
 char* syscallarg[SYSC_ARGC]; // System call arguments.
 
-void *shmptrbase; // Base of shared memory
+void *shmptrbase; // Base of shared memory.
 
 PCB* current_pcb;       // Process Control Board (PCB) of the current process.
 PCB* inter_control_pcb; // PCB of Interrupt Controller.
@@ -48,10 +48,12 @@ int main(void)
 {
     int shmid;
 
+    // Setting handlers
     signal(SIGIRQ1, timeslice_handler);
     signal(SIGIRQ2, iointerrupt_handler);
     signal(SIGSYS, syscall_handler);
 
+    // Setting shared memory
     if ((shmid = shmget(IPC_PRIVATE, PAGE, IPC_CREAT | S_IRWXU)) == -1)
         error("shmid");
     
@@ -66,7 +68,7 @@ int main(void)
     for (int i = 0; i < SYSC_ARGC; i++)
         syscallarg[i] = (char*)(shmptrbase + shm_offset_v[i + 1]);
 
-    // Allocate queues
+    // Allocating queues
     ready_q = new_queue();
     wait_q = new_queue();
 
@@ -76,17 +78,14 @@ int main(void)
     // Processes to be scheduled
     current_pcb = init(NUM_PRCS, PATH, argv);
 
-    puts("\nBEGINNING OF SCHEDULING");
-
-    kill(current_pcb->pid, SIGCONT); // Continues first process
-
     // Scheduling
-    while (process_count > 0);
-
+    puts("\nBEGINNING OF SCHEDULING");
+    kill(current_pcb->pid, SIGCONT); // Continues first process
+    while (process_count > 0); // Loops while there are processes in scheduling
     puts("END OF SCHEDULING");
 
-    shmctl(shmid, IPC_RMID, NULL);
-    shmdt(shmptrbase);
+    shmdt(shmptrbase); // Detaches from shared memory
+    shmctl(shmid, IPC_RMID, NULL); // Removes shared memory
 
     return 0;
 }
@@ -144,10 +143,13 @@ void context_save(Queue* enq)
 {
     int status;
 
-    kill(inter_control_pcb->pid, SIGSTOP); // Deactivate interruptions momentarilly
+    kill(inter_control_pcb->pid, SIGSTOP); // Deactivates interruptions momentarilly
 
-    if (!current_pcb)
+    if (!current_pcb) // If scheduler was is idle, nothing to save
+    {
+        kill(inter_control_pcb->pid, SIGCONT); // Reactivates interruptions
         return;
+    }
     
     kill(current_pcb->pid, SIGSTOP);
 
@@ -170,18 +172,18 @@ void context_save(Queue* enq)
     current_pcb->pc = *pc; // Saves Program Counter
     enqueue(current_pcb, enq); // Enqueues current PCB, but does not update it
 
-    kill(inter_control_pcb->pid, SIGCONT); // Reactivate interruptions
+    kill(inter_control_pcb->pid, SIGCONT); // Reactivates interruptions
 }
 
 // Changes process context.
 // Current PCB becomes dequeued PCB from deq.
 void context_swap(Queue* deq)
 {
-    kill(inter_control_pcb->pid, SIGSTOP); // Deactivate interruptions momentarilly
+    kill(inter_control_pcb->pid, SIGSTOP); // Deactivates interruptions momentarilly
 
     current_pcb = dequeue(deq);
 
-    if (current_pcb)
+    if (current_pcb) // If scheduler is not idle (current_pcb != NULL)
     {
         *pc = current_pcb->pc;
         kill(current_pcb->pid, SIGCONT);
@@ -192,26 +194,22 @@ void context_swap(Queue* deq)
     else
         puts("Idle"); // Comment this line, if you will
 
-    kill(inter_control_pcb->pid, SIGCONT); // Reactivate interruptions
+    kill(inter_control_pcb->pid, SIGCONT); // Reactivates interruptions
 }
 
 // Handles end of time_slice.
-// Swaps the context to next ready process.
+// Saves context of current process and swaps the context to next ready process.
 void timeslice_handler(int signal)
 {
-    kill(inter_control_pcb->pid, SIGSTOP);
-
     context_save(ready_q);
     context_swap(ready_q);
-
-    kill(inter_control_pcb->pid, SIGCONT);
 }
 
 // Handles a syscall.
 // Swaps the context to next ready process.
 void syscall_handler(int signal)
 {
-    kill(inter_control_pcb->pid, SIGSTOP); // Deactivate interruptions momentarilly
+    kill(inter_control_pcb->pid, SIGSTOP); // Deactivates interruptions momentarilly
 
     // Saves syscallarguments in PCB
     strcpy(current_pcb->syscallarg[0], syscallarg[0]);
@@ -224,7 +222,7 @@ void syscall_handler(int signal)
     
     context_swap(ready_q);
 
-    kill(inter_control_pcb->pid, SIGCONT); // Reactivate interruptions
+    kill(inter_control_pcb->pid, SIGCONT); // Reactivates interruptions
     kill(inter_control_pcb->pid, SIGIRQ2); // Signals Interrupt Controller of IO operation
 }
 
@@ -234,7 +232,7 @@ void iointerrupt_handler(int signal)
 {
     PCB* pcb;
 
-    kill(inter_control_pcb->pid, SIGSTOP); // Deactivate interruptions momentarilly
+    kill(inter_control_pcb->pid, SIGSTOP); // Deactivates interruptions momentarilly
 
     pcb = dequeue(wait_q);
 
@@ -243,5 +241,5 @@ void iointerrupt_handler(int signal)
     
     enqueue(pcb, ready_q);
 
-    kill(inter_control_pcb->pid, SIGCONT); // Reactivate interruptions
+    kill(inter_control_pcb->pid, SIGCONT); // Reactivates interruptions
 }

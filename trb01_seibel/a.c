@@ -19,24 +19,26 @@ void systemcall(char* stream, char* mode);
 void cont_handler(int signal);
 
 /* GLOBAL VARIABLES */
-int shm_offset_v[OFFSET_C]; // Shared memory offsets in bytes with respect to shmptrbase (0 -> pc, 1 -> syscall_arg0, 2 -> syscall_arg1)
-int* pc; // Program Counter: counts iterations
+int shm_offset_v[OFFSET_C]; // Shared memory offsets in bytes with respect to shmptrbase (0 -> pc, 1 -> syscall_arg0, 2 -> syscall_arg1).
+int* pc; // Program Counter: counts iterations.
 
-pid_t parent; // Scheduler (kernel)
+pid_t parent; // Scheduler (kernel).
 
-void* shmptrbase; // Base of shared memory
+void* shmptrbase; // Base of shared memory.
 
-char* syscallarg[SYSC_ARGC]; // System call arguments
+char* syscallarg[SYSC_ARGC]; // System call arguments.
 
 /* FUNCTIONS */
 int main(int argc, char** argv)
 {
     int shmid = atoi(argv[0]);
 
+    // Setting handlers
     signal(SIGCONT, cont_handler);
 
     parent = getppid(); // Get parent process's PID
 
+    // Setting shared memory
     if ((shmptrbase = shmat(shmid, NULL, 0)) == (void*)-1) // Attach to shared memory
         error("shmat");
 
@@ -61,7 +63,7 @@ int main(int argc, char** argv)
         sleep(ITER_T);
     }
 
-    shmdt(shmptrbase); // Detach from shared memory (does not remove shm)
+    shmdt(shmptrbase); // Detaches from shared memory (does not remove shm)
     exit(EXIT_SUCCESS);
 }
 
@@ -80,9 +82,10 @@ void systemcall(char* stream, char* mode)
     strcpy(syscallarg[0], stream);
     strcpy(syscallarg[1], mode);
     kill(parent, SIGSYS);
-    pause();
+    pause(); // Waits for parent to signal with SIGCONT
 }
 
+// Necessary to make pause() in systemcall work adequately.
 void cont_handler(int signal)
 {
 }
