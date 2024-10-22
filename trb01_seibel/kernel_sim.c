@@ -10,8 +10,8 @@
 
 #define TRUE 1
 #define INT_CTL_PATH    "./inter_control" // Path of Interrupt Controller
-#define PATH            "./a"   // Path of child processes to be scheduled
-#define NUM_PRCS        6       // Number of processes
+#define PATH            "./a_random" // Path of child processes to be scheduled
+#define NUM_PRCS        7       // Number of processes
 #define ARGC            5       // Number of elements in argv
 #define SYSC_ARGC       2       // Number of system call arguments
 #define OFFSET_C        4       // Number of elements in offset vector   
@@ -80,7 +80,10 @@ int main(void)
 
     // Scheduling
     puts("\nBEGINNING OF SCHEDULING");
+    
+    printf("%-2d PID %d continued\n", *pc, current_pcb->pid); // Comment this line, if you will
     kill(current_pcb->pid, SIGCONT); // Continues first process
+
     while (process_count > 0); // Loops while there are processes in scheduling
     puts("END OF SCHEDULING");
 
@@ -202,7 +205,8 @@ void context_swap(Queue* deq)
 void timeslice_handler(int signal)
 {
     context_save(ready_q);
-    context_swap(ready_q);
+    if (process_count > 0)
+        context_swap(ready_q);
 }
 
 // Handles a syscall.
