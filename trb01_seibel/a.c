@@ -1,8 +1,10 @@
+#include "mysem.h"
 #include "mysignal.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/shm.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -19,6 +21,8 @@ void systemcall(char* stream, char* mode);
 void cont_handler(int signal);
 
 /* GLOBAL VARIABLES */
+int semid;
+int mutex_syscall;
 int shm_offset_v[OFFSET_C]; // Shared memory offsets in bytes with respect to shmptrbase (0 -> pc, 1 -> syscall_arg0, 2 -> syscall_arg1).
 int* pc; // Program Counter: counts iterations.
 
@@ -31,19 +35,25 @@ char* syscallarg[SYSC_ARGC]; // System call arguments.
 /* FUNCTIONS */
 int main(int argc, char** argv)
 {
-    int shmid = atoi(argv[0]);
+    int shmid;
+    semid = atoi(argv[0]);
+    shmid = atoi(argv[1]);
 
     // Setting handlers
     signal(SIGCONT, cont_handler);
 
     parent = getppid(); // Get parent process's PID
 
+    // Setting semaphore
+    if ((mutex_syscall = semget(semid, 1, IPC_CREAT | S_IRWXU)) == -1)
+        error("semget");
+
     // Setting shared memory
     if ((shmptrbase = shmat(shmid, NULL, 0)) == (void*)-1) // Attach to shared memory
         error("shmat");
 
     for (int i = 0; i < OFFSET_C; i++) // Get offsets defined by scheduler
-        shm_offset_v[i] = atoi(argv[i + 1]);
+        shm_offset_v[i] = atoi(argv[i + 2]);
 
     // Mapping shared memory for Inter-process communication (IPC)
     pc = (int*)(shmptrbase + shm_offset_v[0]);
@@ -52,7 +62,7 @@ int main(int argc, char** argv)
         syscallarg[i] = (char*)(shmptrbase + shm_offset_v[i + 1]);
 
     // Iterations
-    for (; *pc < MAX_ITER; (*pc)++)
+    while (*pc < MAX_ITER)
     {
         if (*pc == R_ITER)
             systemcall("D1", "R");
@@ -61,6 +71,10 @@ int main(int argc, char** argv)
             systemcall("D1", "W");
 
         sleep(ITER_T);
+
+        sem_down(mutex_syscall, 0);
+        (*pc)++;
+        sem_up(mutex_syscall, 0);
     }
 
     shmdt(shmptrbase); // Detaches from shared memory (does not remove shm)
@@ -79,9 +93,15 @@ static void error(const char* msg)
 // Mode can be "R" (read) or "W" (write).
 void systemcall(char* stream, char* mode)
 {
+    sem_down(mutex_syscall, 0);
+    /* ATOMIC */
     strcpy(syscallarg[0], stream);
     strcpy(syscallarg[1], mode);
-    kill(parent, SIGSYS);
+    /* ATOMIC */
+    sem_up(mutex_syscall, 0);
+
+    kill(parent, SIGSYS); // Warns scheduler of syscall 
+
     pause(); // Waits for parent to signal with SIGCONT
 }
 
