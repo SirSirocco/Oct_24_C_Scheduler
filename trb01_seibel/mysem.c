@@ -1,5 +1,6 @@
 #include "mysem.h"
 
+// Sets val as max value of semaphore of index semnum with id semid.
 int sem_setval(int semid, int semnum, int val)
 {
     union semun
