@@ -2,6 +2,7 @@
 
 #define MSG_SIZE 15 // byte(s)
 
+// Os nomes dos campos da struct sao arbitrarios
 struct message
 {
     long int    mtype;
