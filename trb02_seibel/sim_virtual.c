@@ -1,4 +1,5 @@
 #include "sim_virtual.h"
+#include "virtual_mem.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -87,6 +88,11 @@ void configure_sim()
 
     // Offset equals the number of bytes needed do describe all positions in a page
     offset = LOG2_kB + (size_t)(ceil(log2(page_size)));
+}
+
+unsigned int next_address(unsigned int* addr, char* mode)
+{
+    fscanf(file, " %x %c", &addr, &mode);
 }
 
 void paging_sim()
