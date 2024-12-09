@@ -171,6 +171,8 @@ int check_page_in_list(unsigned int index, PageList* page_list);
  */
 int check_dirty_page(Page* page);
 
+int get_index(Page* page);
+
 Page* get_page(PageEntry* page_entry);
 
 void set_last_ref(PageEntry* page_entry, unsigned int time);

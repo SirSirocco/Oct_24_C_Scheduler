@@ -122,9 +122,12 @@ void configure_sim(void)
 
 Page* page_fault(unsigned int index, char mode, PageList* page_list)
 {
-    Page* page;
+    Page* page = NULL;
     PageEntry* page_entry = create_page_entry(index, time, 0, TRUE, FALSE, NULL); // TODO tempo
     page_fault_count++;
+
+    // printf("PAGE ENTRY\n:");
+    //print_page_entry(page_entry);
 
     set_mflag(page_entry, mode);
 
@@ -183,17 +186,14 @@ void paging_sim(void)
     int             last_addr = FALSE;
     unsigned int    addr;
     unsigned int    pg_idx;
-    PageList*       pg_lst = create_page_list(page_num_max);
+    PageList*       pg_lst = create_page_list(4); // DEBUG
     Page*           pg = NULL;
 
     // DEBUG
     printf("\n\nsubs_method_case: %d\n\n", subs_method_case);
 
-    while (status != EOF)
+    while ((status = fscanf(file, " %x %c", &addr, &mode)) != EOF)
     {
-        // Obtains virtual address
-        status = fscanf(file, " %x %c", &addr, &mode);
-
         // printf("%u\n", addr);
 
         if (feof(file))
@@ -202,17 +202,32 @@ void paging_sim(void)
         // Gets page index
         pg_idx = addr >> offset;
 
+        // printf("PG_IDX: %d\n", pg_idx);
+
+        // print_page_list(pg_lst);
+
         if (check_page_in_list(pg_idx, pg_lst) == FALSE)
+        {
+            printf("* pg_fault: PG_IDX: %d\n", pg_idx);
             pg = page_fault(pg_idx, mode, pg_lst);
+        }
+
 
         else
             list_update(pg_idx, mode, pg_lst);
 
         if (pg != NULL && check_dirty_page(pg) && !last_addr)
+        {
+            printf("# pg_write: PG_IDX: %d\n", get_index(pg));
             page_write(&pg);
+        }
+
+        // print_page_list(pg_lst);
         
         time++;
     }
+
+    free_page_list(pg_lst, TRUE);
 }
 
 void log_result(void)

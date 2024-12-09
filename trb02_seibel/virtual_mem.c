@@ -338,6 +338,12 @@ int check_dirty_page(Page* page)
     return page->flag.modified;
 }
 
+int get_index(Page* page)
+{
+    if (page == NULL)
+        return -1;
+    return page->index;
+}
 
 // FUNCTIONS FOR SUBS METHODS
 Page* get_page(PageEntry* page_entry)

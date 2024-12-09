@@ -1,4 +1,5 @@
 #include "subs_method.h"
+#include <stdio.h>
 
 #define TRUE    1
 #define FALSE   0
@@ -7,6 +8,8 @@ void lru_add(PageList* page_list, PageEntry* page_entry)
 {
     printf("LRU ADD\n");
     add_page_list_last(page_entry, page_list);
+
+    // print_page_list(page_list);
 }
 
 Page* lru_subs(PageList* page_list)

@@ -297,8 +297,8 @@ int main(void)
     // printf("\n### ADD FIRST:\n");
     // test_add_page_entry_first();
 
-    // printf("\n### ADD LAST:\n");
-    // test_add_page_entry_last();
+    printf("\n### ADD LAST:\n");
+    test_add_page_entry_last();
 
     // printf("\n### FREE PG TRUE:\n");
     // test_free_page_list(TRUE);
@@ -318,8 +318,8 @@ int main(void)
     // printf("\n### REMOVE LAST:\n");
     // test_remove_page_list_last();
 
-    printf("\n### REMOVE INDEX:\n");
-    test_remove_page_list_index();
+    // printf("\n### REMOVE INDEX:\n");
+    // test_remove_page_list_index();
 
     return 0;
 }
