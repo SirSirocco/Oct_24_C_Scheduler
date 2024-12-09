@@ -8,7 +8,7 @@ typedef struct node         PageEntry;
 /**
  * Creates new page based on the parameters.
  * 
- * @param addr Page's address.
+ * @param index Page's index.
  * @param last_ref Last time in which the page was referenced.
  * @param next_ref Next line of code in which the page will be referenced.
  * @param fr Flag that indicates whether the page has been referenced recently.
@@ -16,7 +16,7 @@ typedef struct node         PageEntry;
  * 
  * @return Pointer to the created page.
  */
-Page* create_page(unsigned int addr, unsigned int last_ref, unsigned int next_ref, int fr, int fm);
+Page* create_page(unsigned int index, unsigned int last_ref, unsigned int next_ref, int fr, int fm);
 
 /**
  * Prints all the information regarding the page.
@@ -43,7 +43,7 @@ PageEntry* create_node(Page* page, PageEntry* next);
 /**
  * Wrapper for create_page followed by create_node.
  */
-PageEntry* create_page_entry(unsigned int addr, unsigned int last_ref, unsigned int next_ref, int fr, int fm, PageEntry* next);
+PageEntry* create_page_entry(unsigned int index, unsigned int last_ref, unsigned int next_ref, int fr, int fm, PageEntry* next);
 
 /**
  * Prints all the information regarding the page stored in the entry,
@@ -128,20 +128,52 @@ PageEntry* remove_page_list_first(PageList* page_list);
 PageEntry* remove_page_list_last(PageList* page_list);
 
 /**
- * Searches for a page entry with address addr.
+ * Removes from list page entry which contains the page with index and
+ * returns a pointer to it.
  * 
- * @param addr The address searched.
+ * @return NULL if not found, else pointer to page entry.
+ */
+PageEntry* remove_page_list_index(unsigned int index, PageList* page_list);
+
+/**
+ * Searches for a page entry with index.
+ * 
+ * @param index The index searched.
  * @param page_list The list of page entries in which to search.
  * 
  * @return NULL if not found, else the pointer to the page entry.
  */
-PageEntry* search_page_list(unsigned int addr, PageList* page_list);
+PageEntry* search_page_list(unsigned int index, PageList* page_list);
 
 /**
  * @return
  * 
- * a negative value,    if p1->addr < p2->addr;
- * 0,                   if p1->addr == p2->addr; or 
- * a positive value,    if p1->addr > p2->addr.
+ * a negative value,    if p1->index < p2->index;
+ * 0,                   if p1->index == p2->index; or 
+ * a positive value,    if p1->index > p2->index.
  */
-int cmp_addr(Page* p1, Page* p2);
+int cmp_index(Page* p1, Page* p2);
+
+// FUNCTIONS FOR SIMULATION
+
+/**
+ * Returns whether the page with the index passed as argument is
+ * in page_list.
+ * 
+ * @return TRUE (1) if it is, else FALSE (0).
+ */
+int check_page_in_list(unsigned int index, PageList* page_list);
+
+/**
+ * Returns whether the page has been modified (becomes 'dirty').
+ * 
+ * @return TRUE (1) if it is, else FALSE (0).
+ */
+int check_dirty_page(Page* page);
+
+Page* get_page(PageEntry* page_entry);
+
+void set_last_ref(PageEntry* page_entry, unsigned int time);
+
+void set_mflag(PageEntry* page_entry, char mode);
+

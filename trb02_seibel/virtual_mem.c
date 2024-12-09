@@ -21,7 +21,7 @@ struct flag_table
 
 struct page 
 {
-    unsigned int    addr;       // Page's address
+    unsigned int    index;      // Page's index
     unsigned int    last_ref;   // Last time in which the page was referenced.
     unsigned int    next_ref;   // Next line of code in which the page will be referenced.
     FlagTable       flag;
@@ -37,14 +37,14 @@ struct page_list
 
 // FUNCTIONS
 
-Page* create_page(unsigned int addr, unsigned int last_ref, unsigned int next_ref, int fr, int fm)
+Page* create_page(unsigned int index, unsigned int last_ref, unsigned int next_ref, int fr, int fm)
 {
     Page* page = (Page*)malloc(sizeof(Page));
 
     if (page == NULL) // Unable to allocate memory
         error("create_page");
 
-    page->addr = addr;
+    page->index = index;
     page->last_ref = last_ref;
     page->next_ref = next_ref;
     page->flag.referenced = fr;
@@ -58,7 +58,7 @@ void print_page(Page* page)
     if (page == NULL)
         return;
 
-    printf("Address:        %X\n", page->addr);
+    printf("Index:          %X\n", page->index);
     printf("Last reference: %u\n", page->last_ref);
     printf("Next reference: %u\n", page->next_ref);
     printf("Flag R:         %d\n", page->flag.referenced);
@@ -101,9 +101,9 @@ void free_page_entry(PageEntry* page_entry, int free_pg)
     free(page_entry);
 }
 
-PageEntry* create_page_entry(unsigned int addr, unsigned int last_ref, unsigned int next_ref, int fr, int fm, PageEntry* next)
+PageEntry* create_page_entry(unsigned int index, unsigned int last_ref, unsigned int next_ref, int fr, int fm, PageEntry* next)
 {
-    Page* page = create_page(addr, last_ref, next_ref, fr, fm);
+    Page* page = create_page(index, last_ref, next_ref, fr, fm);
     return create_node(page, next);
 }
 
@@ -228,6 +228,8 @@ PageEntry* remove_page_list_first(PageList* page_list)
     else
         page_list->first = page_list->first->next;
 
+    aux->next = NULL; // Unlinks
+
     return aux;
 }
 
@@ -254,29 +256,110 @@ PageEntry* remove_page_list_last(PageList* page_list)
         page_list->last->next = NULL;   // New last has no next
     }
 
+    aux1->next = NULL; // Unlinks
+
     return aux1;
 }
 
-PageEntry* search_page_list(unsigned int addr, PageList* page_list)
+PageEntry* remove_page_list_index(unsigned int index, PageList* page_list)
+{
+    PageEntry *aux1 = page_list->first, *aux2;
+    
+    if (aux1 == NULL) // Empty list
+        return NULL;
+
+    if (aux1->page->index == index) // Removes first element
+    {
+        page_list->entry_num--;
+
+        if (aux1 == page_list->last) // Last element
+            page_list->last = NULL;
+        
+        page_list->first = page_list->first->next;
+
+        aux1->next = NULL; // Unlinks
+        
+        return aux1;
+    }
+
+    // Tries to find it after the first
+    while (aux1->next != NULL && aux1->next->page->index != index)
+        aux1 = aux1->next;
+
+    if (aux1->next == NULL) // Not found
+        return NULL;
+
+    page_list->entry_num--;
+
+    aux2 = aux1->next;
+    aux1->next = aux1->next->next;
+
+    // Removes last
+    if (aux2 == page_list->last)
+        page_list->last = aux1->next; // Updates last
+
+    aux2->next = NULL; // Unlinks
+    
+    return aux2;
+}
+
+PageEntry* search_page_list(unsigned int index, PageList* page_list)
 {
     PageEntry* aux;
 
     aux = page_list->first;
 
-    while (aux != NULL && aux->page->addr != addr)
+    while (aux != NULL && aux->page->index != index)
         aux = aux->next;
 
     return aux;
 }
 
-int cmp_addr(Page* p1, Page* p2)
+int cmp_index(Page* p1, Page* p2)
 {
-    if (p1->addr < p2->addr)
+    if (p1->index < p2->index)
         return -1;
     
-    else if (p1->addr == p2->addr)
+    else if (p1->index == p2->index)
         return 0;
     
     else
         return 1;
+}
+
+// FUNCTIONS FOR SIMULATION
+int check_page_in_list(unsigned int index, PageList* page_list)
+{
+    return (search_page_list(index, page_list) == NULL) ? FALSE : TRUE;
+}
+
+int check_dirty_page(Page* page)
+{
+    return page->flag.modified;
+}
+
+
+// FUNCTIONS FOR SUBS METHODS
+Page* get_page(PageEntry* page_entry)
+{
+    if (page_entry == NULL)
+        return NULL;
+    return page_entry->page;
+}
+
+void set_last_ref(PageEntry* page_entry, unsigned int time)
+{
+    if (page_entry == NULL)
+        return;
+    
+    page_entry->page->last_ref = time;
+}
+
+void set_mflag(PageEntry* page_entry, char mode)
+{
+    if (page_entry == NULL)
+        return;
+    
+    if (mode == 'W')
+        page_entry->page->flag.modified = TRUE;
 }

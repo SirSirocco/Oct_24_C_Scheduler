@@ -1,5 +1,5 @@
 #include "sim_virtual.h"
-#include "virtual_mem.h"
+#include "subs_method.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -9,8 +9,21 @@
 #define MB_TO_kB    (size_t)pow(2.0, 10.0)
 #define LOG2_kB     (size_t)10
 #define BUF_SIZ     128
+#define TRUE        1
+#define FALSE       0
 #define SUCCESS     0
 #define error(msg)  do { perror(msg); exit(EXIT_FAILURE); } while (0)
+
+
+#define LRU             "LRU"
+#define SECOND_CHANCE   "SC"
+#define NRU             "NRU"
+#define OPTIMAL         "OTIMO"
+
+#define lru             0
+#define sc              1
+#define nru             2
+#define opt             3
 
 char*   file_name;
 char*   subs_method;
@@ -20,11 +33,12 @@ FILE*   file;
 size_t  mem_size;
 size_t  page_size;
 size_t  offset;
-
-int     page_num;
-int     page_fault_count = 0;
-int     page_write_count = 0;
-int     time = 0;
+   
+unsigned int    subs_method_case;
+unsigned int    page_num_max;
+unsigned int    page_fault_count = 0;
+unsigned int    page_write_count = 0;
+unsigned int    time = 0;
 
 int main(int argc, char** argv)
 {
@@ -47,6 +61,19 @@ static void str_toupper(char* s)
         s++;
 }
 
+// TODO
+void get_subs_method_case(void)
+{
+    if (!strcmp(subs_method, LRU))
+        subs_method_case = lru;
+    else if (!strcmp(subs_method, SECOND_CHANCE))
+        subs_method_case = sc;
+    else if (!strcmp(subs_method, NRU))
+        subs_method_case = nru;
+    else if (!strcmp(subs_method, OPTIMAL))
+        subs_method_case = opt;
+}
+
 void get_data(int argc, char** argv)
 {
     for (int i = 0; i < argc; i++)
@@ -67,7 +94,7 @@ void get_data(int argc, char** argv)
         case 3:
             page_size = atoi(argv[i]);
             printf("page_size: %lu\n", page_size);
-            break;char mode;
+            break;
 
         case 4:
             mem_size = atoi(argv[i]);
@@ -77,45 +104,124 @@ void get_data(int argc, char** argv)
     }
 }
 
-void configure_sim()
+void configure_sim(void)
 {
     // Tries to open file
     if (!(file = fopen(file_name, "r")))
         error("fopen");
     
-    // Number of pages equals the reason between total memory size and page size
-    page_num = (mem_size * MB_TO_kB) / page_size;
+    // Max number of pages equals the reason between total memory size and page size
+    page_num_max = (mem_size * MB_TO_kB) / page_size;
 
     // Offset equals the number of bytes needed do describe all positions in a page
     offset = LOG2_kB + (size_t)(ceil(log2(page_size)));
+
+    // Optimizes subs method access
+    get_subs_method_case();
 }
 
-unsigned int next_address(unsigned int* addr, char* mode)
+Page* page_fault(unsigned int index, char mode, PageList* page_list)
 {
-    fscanf(file, " %x %c", &addr, &mode);
+    Page* page;
+    PageEntry* page_entry = create_page_entry(index, time, 0, TRUE, FALSE, NULL); // TODO tempo
+    page_fault_count++;
+
+    set_mflag(page_entry, mode);
+
+    if (has_room(page_list))
+    {
+        switch (subs_method_case)
+        {
+            case lru:
+                lru_add(page_list, page_entry);
+                break;
+        
+            case sc:
+                sc_add(page_list, page_entry);
+                break;
+        }
+    }
+    
+    else
+    {
+        switch (subs_method_case)
+        {
+            case lru:
+                page = lru_subs(page_list);
+                break;
+        }
+    }
+
+    return page;
 }
 
-void paging_sim()
+void list_update(unsigned int index, char mode, PageList* page_list)
+{
+    switch (subs_method_case)
+    {
+        case lru:
+            lru_update(index, mode, time, page_list);
+            break;
+        
+        case sc:
+            sc_update();
+            break;
+    }
+}
+
+void page_write(Page** page)
+{
+    page_write_count++;
+    free_page(*page);
+    *page = NULL;
+}
+
+void paging_sim(void)
 {
     char            mode;
-    int             status;
+    int             status = 0;
+    int             last_addr = FALSE;
     unsigned int    addr;
+    unsigned int    pg_idx;
+    PageList*       pg_lst = create_page_list(page_num_max);
+    Page*           pg = NULL;
 
-    // while (status != -1)
-    // {
-    //     time++;
-    //     fscanf(file, " %x %c", &addr, &mode);
-    // }
+    // DEBUG
+    printf("\n\nsubs_method_case: %d\n\n", subs_method_case);
 
+    while (status != EOF)
+    {
+        // Obtains virtual address
+        status = fscanf(file, " %x %c", &addr, &mode);
+
+        // printf("%u\n", addr);
+
+        if (feof(file))
+            last_addr = TRUE;
+
+        // Gets page index
+        pg_idx = addr >> offset;
+
+        if (check_page_in_list(pg_idx, pg_lst) == FALSE)
+            pg = page_fault(pg_idx, mode, pg_lst);
+
+        else
+            list_update(pg_idx, mode, pg_lst);
+
+        if (pg != NULL && check_dirty_page(pg) && !last_addr)
+            page_write(&pg);
+        
+        time++;
+    }
 }
 
-void log_result()
+void log_result(void)
 {
     printf("Arquivo de entrada:                     %s\n", file_name);
     printf("Tamanho da memória física:              %lu MB\n", mem_size);
     printf("Tamanho das páginas:                    %lu kB\n", page_size);
     printf("Offset de bytes:                        %lu\n", offset);
-    printf("Número máximo de páginas em memória:    %d\n", page_num);
+    printf("Número máximo de páginas em memória:    %d\n", page_num_max);
     printf("Algoritmo de substituição:              %s\n", subs_method);
     printf("Número de Faltas de Página:             %d\n", page_fault_count);
     printf("Número de Páginas Escritas:             %d\n", page_write_count);

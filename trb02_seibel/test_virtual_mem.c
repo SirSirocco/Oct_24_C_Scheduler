@@ -136,7 +136,7 @@ void test_add_page_list_ord(void)
     for (int i = 0; i < NUM; i++)
     {
         add_page_list_ord(create_page_entry(addr[i], 1, 1, 1, 1, NULL),
-                            page_list, cmp_addr);
+                            page_list, cmp_index);
         print_page_list(page_list);
     }
 
@@ -161,7 +161,7 @@ void test_search_page_entry(void)
     for (int i = 0; i < NUM; i++)
     {
         add_page_list_ord(create_page_entry(addr[i], 1, 1, 1, 1, NULL),
-                            page_list, cmp_addr);
+                            page_list, cmp_index);
         print_page_entry(search_page_list(to_find[i], page_list));
         printf("\n");
 
@@ -196,7 +196,7 @@ void test_remove_page_list_first(void)
     for (int i = 0; i < NUM; i++)
     {
         add_page_list_ord(create_page_entry(addr[i], 1, 1, 1, 1, NULL),
-                            page_list, cmp_addr);
+                            page_list, cmp_index);
     }
 
     for (int i = 0; i < NUM + 1; i++)
@@ -228,7 +228,7 @@ void test_remove_page_list_last(void)
     for (int i = 0; i < NUM; i++)
     {
         add_page_list_ord(create_page_entry(addr[i], 1, 1, 1, 1, NULL),
-                            page_list, cmp_addr);
+                            page_list, cmp_index);
     }
 
     for (int i = 0; i < NUM + 1; i++)
@@ -239,6 +239,39 @@ void test_remove_page_list_last(void)
             print_page_entry(page_entry);
         else
             printf("!!! EMPTY");
+
+        printf("\n");
+    }
+
+    print_page_list(page_list);
+    printf("\n");
+
+    free_page_list(page_list, TRUE);
+}
+
+void test_remove_page_list_index(void)
+{
+    unsigned int addr[NUM] = { 10, 9, 1 },
+                 test[NUM + 2] = { 5, 9, 10, 1, 3 };
+    
+    PageList* page_list = create_page_list(200);
+    PageEntry* page_entry;
+    
+
+    for (int i = 0; i < NUM; i++)
+    {
+        add_page_list_ord(create_page_entry(addr[i], 1, 1, 1, 1, NULL),
+                            page_list, cmp_index);
+    }
+
+    for (int i = 0; i < NUM + 2; i++)
+    {
+        page_entry = remove_page_list_index(test[i], page_list);
+        
+        if (page_entry != NULL)
+            print_page_entry(page_entry);
+        else
+            printf("!!! NOT FOUND");
 
         printf("\n");
     }
@@ -282,8 +315,11 @@ int main(void)
     // printf("\n### REMOVE FIRST:\n");
     // test_remove_page_list_first();
 
-    printf("\n### REMOVE LAST:\n");
-    test_remove_page_list_last();
+    // printf("\n### REMOVE LAST:\n");
+    // test_remove_page_list_last();
+
+    printf("\n### REMOVE INDEX:\n");
+    test_remove_page_list_index();
 
     return 0;
 }
