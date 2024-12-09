@@ -138,9 +138,12 @@ Page* page_fault(unsigned int index, char mode, PageList* page_list)
             case lru:
                 page = lru_subs(page_list);
                 break;
+            
+            case sc:
+                page = sc_subs(page_list);
+                break;
         }
     }
-    
 
     switch (subs_method_case)
         {
@@ -165,7 +168,7 @@ void list_update(unsigned int index, char mode, PageList* page_list)
             break;
         
         case sc:
-            sc_update();
+            sc_update(index, mode, page_list);
             break;
     }
 }
@@ -200,7 +203,7 @@ void paging_sim(void)
         // Gets page index
         pg_idx = addr >> offset;
 
-        // printf("PG_IDX: %d\n", pg_idx);
+        printf("PG_IDX: %d\n", pg_idx);
 
         // print_page_list(pg_lst);
 
@@ -215,7 +218,6 @@ void paging_sim(void)
         else
         {
             list_update(pg_idx, mode, pg_lst);
-            printf("? PG_RM: %d\n", get_index(pg));
         }
 
         if (pg != NULL && check_dirty_page(pg) && !last_addr)

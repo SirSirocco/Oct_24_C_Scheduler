@@ -177,5 +177,8 @@ Page* get_page(PageEntry* page_entry);
 
 void set_last_ref(PageEntry* page_entry, unsigned int time);
 
+void set_rflag(PageEntry* page_entry, int value);
+
 void set_mflag(PageEntry* page_entry, char mode);
 
+PageEntry* sc_procedure(PageList* page_list);

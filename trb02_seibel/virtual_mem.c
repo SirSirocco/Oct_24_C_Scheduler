@@ -361,6 +361,14 @@ void set_last_ref(PageEntry* page_entry, unsigned int time)
     page_entry->page->last_ref = time;
 }
 
+void set_rflag(PageEntry* page_entry, int value)
+{
+    if (page_entry == NULL)
+        return;
+
+    page_entry->page->flag.referenced = value;
+}
+
 void set_mflag(PageEntry* page_entry, char mode)
 {
     if (page_entry == NULL)
@@ -369,3 +377,43 @@ void set_mflag(PageEntry* page_entry, char mode)
     if (mode == 'W')
         page_entry->page->flag.modified = TRUE;
 }
+
+PageEntry* sc_procedure(PageList* page_list)
+{
+    PageEntry* aux;
+
+    if (page_list == NULL) // NULL list
+        return NULL;
+
+    aux = page_list->first;
+
+    if (aux == NULL) // Empty list
+        return NULL;
+    
+    while (aux != NULL)
+    {
+        if (aux->page->flag.referenced == FALSE)
+            return remove_page_list_index(aux->page->index, page_list);
+        
+        aux->page->flag.referenced = FALSE;
+        aux = aux->next;
+    }
+
+    // Emulates circular linked list
+    return remove_page_list_first(page_list);
+}
+
+// NRU
+int nru_priority(Page* page)
+{
+    if (page == NULL)
+        return -1;
+
+    return page->flag.modified + 2 * page->flag.referenced;
+}
+
+int cmp_nru(Page* p1, Page* p2)
+{
+    return nru_priority(p1) - nru_priority(p2);
+}
+

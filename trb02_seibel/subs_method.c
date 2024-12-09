@@ -46,10 +46,21 @@ void sc_add(PageList* page_list, PageEntry* page_entry)
 
 Page* sc_subs(PageList* page_list)
 {
-    return NULL;
+    PageEntry* page_entry;
+    Page* page;
+
+    page_entry = sc_procedure(page_list);
+    page = get_page(page_entry);
+
+    free_page_entry(page_entry, FALSE);
+
+    return page;
 }
 
-void sc_update(void)
+void sc_update(int index, char mode, PageList* page_list)
 {
-}
+    PageEntry* page_entry = search_page_list(index, page_list);
 
+    set_rflag(page_entry, TRUE);
+    set_mflag(page_entry, mode);
+}
