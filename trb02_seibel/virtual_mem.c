@@ -128,11 +128,11 @@ void print_page_list(PageList* page_list)
 {
     PageEntry* aux = page_list->first;
 
-    printf("Entry count:    %u\n", page_list->entry_num);
-    printf("Entry max:      %u\n", page_list->entry_max);
-    printf("First element:  %p\n", page_list->first);
-    printf("Last element:   %p\n", page_list->last);
-    printf("Elements:\n\n");
+    printf("-> Entry count:    %u\n", page_list->entry_num);
+    printf("-> Entry max:      %u\n", page_list->entry_max);
+    printf("-> First element:  %p\n", page_list->first);
+    printf("-> Last element:   %p\n", page_list->last);
+    printf("# Elements:\n\n");
     while (aux != NULL)
     {
         print_page_entry(aux);

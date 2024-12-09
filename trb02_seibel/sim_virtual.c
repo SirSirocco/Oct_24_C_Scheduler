@@ -131,29 +131,27 @@ Page* page_fault(unsigned int index, char mode, PageList* page_list)
 
     set_mflag(page_entry, mode);
 
-    if (has_room(page_list))
+    if (!has_room(page_list))
     {
-        switch (subs_method_case)
-        {
-            case lru:
-                lru_add(page_list, page_entry);
-                break;
-        
-            case sc:
-                sc_add(page_list, page_entry);
-                break;
-        }
-    }
-    
-    else
-    {
-        switch (subs_method_case)
+         switch (subs_method_case)
         {
             case lru:
                 page = lru_subs(page_list);
                 break;
         }
     }
+    
+
+    switch (subs_method_case)
+        {
+            case lru:
+                lru_add(page_list, page_entry);
+                break;
+
+            case sc:
+                sc_add(page_list, page_entry);
+                break;
+        }
 
     return page;
 }
@@ -182,18 +180,18 @@ void page_write(Page** page)
 void paging_sim(void)
 {
     char            mode;
-    int             status = 0;
     int             last_addr = FALSE;
     unsigned int    addr;
     unsigned int    pg_idx;
-    PageList*       pg_lst = create_page_list(4); // DEBUG
+    PageList*       pg_lst = create_page_list(4 /*page_num_max*/); // DEBUG
     Page*           pg = NULL;
 
     // DEBUG
     printf("\n\nsubs_method_case: %d\n\n", subs_method_case);
 
-    while ((status = fscanf(file, " %x %c", &addr, &mode)) != EOF)
+    while (fscanf(file, " %x %c ", &addr, &mode) != EOF) // Leave blank space in the end for feof to work properly
     {
+        printf("\n### TIME %u\n", time);
         // printf("%u\n", addr);
 
         if (feof(file))
@@ -210,11 +208,15 @@ void paging_sim(void)
         {
             printf("* pg_fault: PG_IDX: %d\n", pg_idx);
             pg = page_fault(pg_idx, mode, pg_lst);
+            printf("? PG_RM: %d\n", get_index(pg));
         }
 
 
         else
+        {
             list_update(pg_idx, mode, pg_lst);
+            printf("? PG_RM: %d\n", get_index(pg));
+        }
 
         if (pg != NULL && check_dirty_page(pg) && !last_addr)
         {
@@ -222,10 +224,13 @@ void paging_sim(void)
             page_write(&pg);
         }
 
-        // print_page_list(pg_lst);
+        print_page_list(pg_lst);
         
         time++;
     }
+
+    if (pg != NULL)
+        free_page(pg);
 
     free_page_list(pg_lst, TRUE);
 }

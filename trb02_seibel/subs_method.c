@@ -6,17 +6,19 @@
 
 void lru_add(PageList* page_list, PageEntry* page_entry)
 {
-    printf("LRU ADD\n");
-    add_page_list_last(page_entry, page_list);
+    // Log for debugging
+    // printf("LRU ADD:\n");
 
-    // print_page_list(page_list);
+    add_page_list_last(page_entry, page_list);
 }
 
 Page* lru_subs(PageList* page_list)
 {
-    printf("LRU SUBS\n");
     PageEntry* page_entry = remove_page_list_first(page_list);
     Page* page = get_page(page_entry);
+
+    // Log for debugging
+    // printf("LRU SUBS:\n");
 
     free_page_entry(page_entry, FALSE);
 
@@ -25,8 +27,10 @@ Page* lru_subs(PageList* page_list)
 
 void lru_update(int index, char mode, unsigned int time, PageList* page_list)
 {
-    printf("LRU UPDATE\n");
     PageEntry* page_entry = remove_page_list_index(index, page_list);
+
+    // Log for debugging
+    // printf("LRU UPDATE:\n");
 
     // Page update
     set_last_ref(page_entry, time);
