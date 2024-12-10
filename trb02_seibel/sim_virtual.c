@@ -186,7 +186,7 @@ void paging_sim(void)
     int             last_addr = FALSE;
     unsigned int    addr;
     unsigned int    pg_idx;
-    PageList*       pg_lst = create_page_list(4 /*page_num_max*/); // DEBUG
+    PageList*       pg_lst = create_page_list(/*4 */page_num_max); // DEBUG
     Page*           pg = NULL;
 
     // DEBUG
@@ -194,7 +194,7 @@ void paging_sim(void)
 
     while (fscanf(file, " %x %c ", &addr, &mode) != EOF) // Leave blank space in the end for feof to work properly
     {
-        printf("\n### TIME %u\n", time);
+        // printf("\n### TIME %u\n", time);
         // printf("%u\n", addr);
 
         if (feof(file))
@@ -203,15 +203,15 @@ void paging_sim(void)
         // Gets page index
         pg_idx = addr >> offset;
 
-        printf("PG_IDX: %d\n", pg_idx);
+        // printf("PG_IDX: %d\n", pg_idx);
 
         // print_page_list(pg_lst);
 
         if (check_page_in_list(pg_idx, pg_lst) == FALSE)
         {
-            printf("* pg_fault: PG_IDX: %d\n", pg_idx);
+            // printf("* pg_fault: PG_IDX: %d\n", pg_idx);
             pg = page_fault(pg_idx, mode, pg_lst);
-            printf("? PG_RM: %d\n", get_index(pg));
+            // printf("? PG_RM: %d\n", get_index(pg));
         }
 
 
@@ -222,11 +222,11 @@ void paging_sim(void)
 
         if (pg != NULL && check_dirty_page(pg) && !last_addr)
         {
-            printf("# pg_write: PG_IDX: %d\n", get_index(pg));
+            //printf("# pg_write: PG_IDX: %d\n", get_index(pg));
             page_write(&pg);
         }
 
-        print_page_list(pg_lst);
+        // print_page_list(pg_lst);
         
         time++;
     }

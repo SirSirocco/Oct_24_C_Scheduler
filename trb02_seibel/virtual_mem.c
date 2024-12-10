@@ -261,26 +261,67 @@ PageEntry* remove_page_list_last(PageList* page_list)
     return aux1;
 }
 
+// PageEntry* remove_page_list_index(unsigned int index, PageList* page_list)
+// {
+//     PageEntry *aux1, *aux2;
+    
+//     if (page_list == NULL)
+//         return NULL;
+    
+//     aux1 = page_list->first;
+
+//     if (aux1 == NULL) // Empty list
+//         return NULL;
+
+//     if (aux1->page->index == index) // Removes first element
+//     {
+//         page_list->entry_num--;
+
+//         if (aux1 == page_list->last) // Last element
+//             page_list->last = NULL;
+        
+//         page_list->first = page_list->first->next;
+
+//         aux1->next = NULL; // Unlinks
+        
+//         return aux1;
+//     }
+
+//     // Tries to find it after the first
+//     while (aux1->next != NULL && aux1->next->page->index != index)
+//         aux1 = aux1->next;
+
+//     if (aux1->next == NULL) // Not found
+//         return NULL;
+
+//     page_list->entry_num--;
+
+//     aux2 = aux1->next;
+//     aux1->next = aux1->next->next;
+
+//     // Removes last
+//     if (aux2 == page_list->last)
+//         page_list->last = aux1->next; // Updates last
+
+//     aux2->next = NULL; // Unlinks
+    
+//     return aux2;
+// }
+
 PageEntry* remove_page_list_index(unsigned int index, PageList* page_list)
 {
-    PageEntry *aux1 = page_list->first, *aux2;
+    PageEntry *aux1, *aux2;
     
+    if (page_list == NULL)
+        return NULL;
+    
+    aux1 = page_list->first;
+
     if (aux1 == NULL) // Empty list
         return NULL;
 
     if (aux1->page->index == index) // Removes first element
-    {
-        page_list->entry_num--;
-
-        if (aux1 == page_list->last) // Last element
-            page_list->last = NULL;
-        
-        page_list->first = page_list->first->next;
-
-        aux1->next = NULL; // Unlinks
-        
-        return aux1;
-    }
+        return remove_page_list_first(page_list);
 
     // Tries to find it after the first
     while (aux1->next != NULL && aux1->next->page->index != index)
@@ -292,11 +333,11 @@ PageEntry* remove_page_list_index(unsigned int index, PageList* page_list)
     page_list->entry_num--;
 
     aux2 = aux1->next;
-    aux1->next = aux1->next->next;
+    aux1->next = aux2->next;
 
     // Removes last
     if (aux2 == page_list->last)
-        page_list->last = aux1->next; // Updates last
+        page_list->last = aux1; // Updates last
 
     aux2->next = NULL; // Unlinks
     
