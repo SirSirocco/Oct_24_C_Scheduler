@@ -56,21 +56,31 @@ void sc_update(int index, char mode, PageList* page_list)
     set_mflag(page_entry, mode);
 }
 
-void cycle_update(PageList* page_list, unsigned int subs_cycle)
+static int cycle_update(PageList* page_list, unsigned int subs_cycle)
 {
     static unsigned int cycle_count = 0;
     if (++cycle_count > subs_cycle)
     {
         off_rflag_all(page_list);
         cycle_count = 0;
+        return TRUE;
     }
+
+    return FALSE;
 }
+
+int flag = TRUE;
 
 void nru_add(PageList* page_list, PageEntry* page_entry)
 {
-    cycle_update(page_list, get_entry_max(page_list));
-    ord_page_list(page_list, cmp_nru);
+    if (flag == TRUE)
+    {
+        if (cycle_update(page_list, get_entry_max(page_list)) == TRUE)
+            ord_page_list(page_list, cmp_nru);
+    }
     add_page_list_ord(page_entry, page_list, cmp_nru);
+
+    flag = TRUE;
 }
 
 Page* nru_subs(PageList* page_list)
@@ -78,7 +88,10 @@ Page* nru_subs(PageList* page_list)
     PageEntry* page_entry;
     Page* page;
     
-    ord_page_list(page_list, cmp_nru);
+    flag = FALSE;
+
+    if (cycle_update(page_list, get_entry_max(page_list)) == TRUE)
+        ord_page_list(page_list, cmp_nru);
 
     page_entry = remove_page_list_first(page_list);
     page = get_page(page_entry);
