@@ -1,3 +1,5 @@
+// #define DEBUG 1
+
 #include "sim_virtual.h"
 #include "subs_method.h"
 #include <stdio.h>
@@ -11,21 +13,24 @@
 #define BUF_SIZ     128
 #define TRUE        1
 #define FALSE       0
+#define PINF        (unsigned int)-1 // PAGE INDEX NOT FOUND
 #define SUCCESS     0
 #define error(msg)  do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
-
+// ALGORITHMS FROM COMMAND LINE
 #define LRU             "LRU"
 #define SECOND_CHANCE   "SC"
 #define NRU             "NRU"
 #define OPTIMAL         "OTIMO"
 
+// ALGORITHMS CODE TABLE
 #define lru             0
 #define sc              1
 #define nru             2
 #define opt             3
 
-char*   file_name;
+// GLOBAL VARIABLEAS
+char*   file_name;  // F
 char*   subs_method;
 
 FILE*   file;
@@ -39,6 +44,7 @@ unsigned int    page_num_max;
 unsigned int    page_fault_count = 0;
 unsigned int    page_write_count = 0;
 unsigned int    time = 0;
+unsigned int    current_ref = 0;
 
 int main(int argc, char** argv)
 {
@@ -102,6 +108,7 @@ void get_data(int argc, char** argv)
             break;
         }
     }
+    puts("");
 }
 
 void configure_sim(void)
@@ -120,14 +127,34 @@ void configure_sim(void)
     get_subs_method_case();
 }
 
+unsigned int get_next_ref(unsigned int index, unsigned int current_ref, FILE* addr_file)
+{
+    long            initial_pos = ftell(addr_file);
+    unsigned int    addr;
+    char            mode;
+    
+    while (fscanf(file, " %x %c ", &addr, &mode) != EOF)
+    {
+        current_ref++;
+
+        if ((addr >> offset) == index)
+        {
+            fseek(addr_file, initial_pos, SEEK_SET);
+            return current_ref;
+        }
+    }
+
+    // Resets file position
+    fseek(addr_file, initial_pos, SEEK_SET);
+
+    return PINF; // PAGE INDEX NOT FOUND
+}
+
 Page* page_fault(unsigned int index, char mode, PageList* page_list)
 {
     Page* page = NULL;
-    PageEntry* page_entry = create_page_entry(index, time, 0, TRUE, FALSE, NULL); // TODO tempo
+    PageEntry* page_entry = create_page_entry(index, time, 0, TRUE, FALSE, NULL); // TODO temp
     page_fault_count++;
-
-    // printf("PAGE ENTRY\n:");
-    // print_page_entry(page_entry);
 
     set_mflag(page_entry, mode);
 
@@ -146,6 +173,10 @@ Page* page_fault(unsigned int index, char mode, PageList* page_list)
             case nru:
                 page = nru_subs(page_list);
                 break;
+            
+            case opt:
+                page = optimal_subs(page_list);
+                break;
         }
     }
 
@@ -161,6 +192,11 @@ Page* page_fault(unsigned int index, char mode, PageList* page_list)
 
         case nru:
             nru_add(page_list, page_entry);
+            break;
+
+        case opt:
+            set_next_ref(page_entry, get_next_ref(index, current_ref, file));
+            optimal_add(page_list, page_entry);
             break;
     }
 
@@ -182,6 +218,10 @@ void list_update(unsigned int index, char mode, PageList* page_list)
         case nru:
             nru_update(index, mode, time, page_list);
             break;
+
+        case opt:
+            optimal_update(index, mode, time, get_next_ref(index, current_ref, file), page_list); // DEBUG
+            break;
     }
 }
 
@@ -198,16 +238,25 @@ void paging_sim(void)
     int             last_addr = FALSE;
     unsigned int    addr;
     unsigned int    pg_idx;
-    PageList*       pg_lst = create_page_list(4 /*page_num_max*/); // DEBUG
     Page*           pg = NULL;
 
-    // DEBUG
+    #ifdef DEBUG
+    page_num_max = 4;
+    #endif
+
+    PageList*       pg_lst = create_page_list(page_num_max); // DEBUG
+
+    #ifdef DEBUG
     printf("\n\nsubs_method_case: %d\n\n", subs_method_case);
+    #endif
+
+    puts("Executando simulador...\n");
 
     while (fscanf(file, " %x %c ", &addr, &mode) != EOF) // Leave blank space in the end for feof to work properly
     {
+        #ifdef DEBUG
         printf("\n### TIME %u\n", time);
-        // printf("%u\n", addr);
+        #endif
 
         if (feof(file))
             last_addr = TRUE;
@@ -215,20 +264,31 @@ void paging_sim(void)
         // Gets page index
         pg_idx = addr >> offset;
 
-        printf("PG_IDX: %d\n", pg_idx);
+        #ifdef DEBUG
+        printf("* Page Reference: index %d\n", pg_idx);
+        #endif
         
         if (check_page_in_list(pg_idx, pg_lst) == FALSE)
         {
-            printf("* pg_fault: PG_IDX: %d\n", pg_idx);
+            #ifdef DEBUG
+            printf("! Page Fault:     index %d\n", pg_idx);
+            #endif
+
             pg = page_fault(pg_idx, mode, pg_lst);
-            printf("? PG_RM: %d\n", get_index(pg));
+
+            #ifdef DEBUG
+            printf("? Page Remove:    index %d\n", get_index(pg));
+            #endif
         }
         else
             list_update(pg_idx, mode, pg_lst);
 
         if (pg != NULL && check_dirty_page(pg) && !last_addr)
         {
-            printf("# pg_write: PG_IDX: %d\n", get_index(pg));
+            #ifdef DEBUG
+            printf("# Page Write:     index %d\n", get_index(pg));
+            #endif
+
             page_write(&pg);
         }
 
@@ -237,12 +297,16 @@ void paging_sim(void)
             free_page(pg);
             pg = NULL;
         }
-
+        
+        #ifdef DEBUG
         print_page_list(pg_lst);
+        #endif
         
         time++;
+        current_ref++;
     }
 
+    // Frees all resources allocated
     free_page_list(pg_lst, TRUE);
 }
 

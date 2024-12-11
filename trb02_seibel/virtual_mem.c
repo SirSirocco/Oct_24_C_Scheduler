@@ -6,7 +6,7 @@
 #define TRUE        1
 #define FALSE       0
 
-// STRUCTS
+// ### STRUCTS ###
 struct node
 {
     Page*       page;
@@ -35,8 +35,7 @@ struct page_list
     PageEntry*      last;       // Last entry.
 };
 
-// FUNCTIONS
-
+// ## PAGE ##
 Page* create_page(unsigned int index, unsigned int last_ref, unsigned int next_ref, int fr, int fm)
 {
     Page* page = (Page*)malloc(sizeof(Page));
@@ -70,6 +69,7 @@ void free_page(Page* page)
     free(page);
 }
 
+// ## PAGE ENTRY ##
 PageEntry* create_node(Page* page, PageEntry* next)
 {
     PageEntry* node = (PageEntry*)malloc(sizeof(PageEntry));
@@ -107,6 +107,7 @@ PageEntry* create_page_entry(unsigned int index, unsigned int last_ref, unsigned
     return create_node(page, next);
 }
 
+// ## PAGE LIST ##
 PageList* create_page_list(unsigned int entry_max)
 {
     PageList* page_list = (PageList*)malloc(sizeof(PageList));
@@ -198,7 +199,7 @@ void add_page_list_ord(PageEntry* page_entry, PageList* page_list, int(*cmp)(Pag
         return;
     }
 
-    if (cmp(page_entry->page, aux->page) < 0) // Add before first
+    if (cmp(page_entry->page, aux->page) <= 0) // Add before first
     {
         page_entry->next = aux;
         page_list->first = page_entry;
@@ -340,6 +341,7 @@ void ord_page_list(PageList* page_list, int cmp(Page* p1, Page* p2))
     }
 }
 
+// ### COMPARE FUNCTIONS ###
 int cmp_index(Page* p1, Page* p2)
 {
     if (p1->index < p2->index)
@@ -386,6 +388,14 @@ void set_last_ref(PageEntry* page_entry, unsigned int time)
     page_entry->page->last_ref = time;
 }
 
+void set_next_ref(PageEntry* page_entry, unsigned int next_ref)
+{
+    if (page_entry == NULL)
+        return;
+    
+    page_entry->page->next_ref = next_ref;
+}
+
 void set_rflag(PageEntry* page_entry, int value)
 {
     if (page_entry == NULL)
@@ -428,6 +438,12 @@ PageEntry* sc_procedure(PageList* page_list)
     return remove_page_list_first(page_list);
 }
 
+// LRU
+int cmp_lru(Page* p1, Page* p2)
+{
+    return p1->last_ref - p2->last_ref;
+}
+
 // NRU
 int nru_priority(Page* page)
 {
@@ -435,11 +451,6 @@ int nru_priority(Page* page)
         return -1;
 
     return page->flag.modified + 2 * page->flag.referenced;
-}
-
-int cmp_lru(Page* p1, Page* p2)
-{
-    return p1->last_ref - p2->last_ref;
 }
 
 int cmp_nru(Page* p1, Page* p2)
@@ -475,4 +486,14 @@ unsigned int get_entry_max(PageList* page_list)
         return 0;
 
     return page_list->entry_max;
+}
+
+// OPTIMAL
+int cmp_optimal(Page* p1, Page* p2)
+{
+    if (p1->next_ref > p2->next_ref)
+        return -1;
+    else if (p1->next_ref == p2->next_ref)
+        return p1->flag.modified - p2->flag.modified;
+    return 1;
 }

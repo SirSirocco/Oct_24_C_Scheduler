@@ -101,3 +101,30 @@ void nru_update(int index, char mode, unsigned int time, PageList* page_list)
     
     add_page_list_ord(page_entry, page_list, cmp_nru);
 }
+
+void optimal_add(PageList* page_list, PageEntry* page_entry)
+{
+    add_page_list_ord(page_entry, page_list, cmp_optimal);
+}
+
+Page* optimal_subs(PageList* page_list)
+{
+    PageEntry* page_entry = remove_page_list_first(page_list);
+    Page* page = get_page(page_entry);
+
+    free_page_entry(page_entry, FALSE);
+
+    return page;
+}
+
+void optimal_update(int index, char mode, unsigned int time, unsigned int next_ref, PageList* page_list)
+{
+    PageEntry* page_entry = remove_page_list_index(index, page_list);
+
+    // Page update
+    //set_last_ref(page_entry, time);
+    set_next_ref(page_entry, next_ref);
+    set_mflag(page_entry, mode);
+
+    add_page_list_ord(page_entry, page_list, cmp_optimal);
+}

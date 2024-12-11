@@ -179,6 +179,8 @@ Page* get_page(PageEntry* page_entry);
 
 void set_last_ref(PageEntry* page_entry, unsigned int time);
 
+void set_next_ref(PageEntry* page_entry, unsigned int next_ref);
+
 void set_rflag(PageEntry* page_entry, int value);
 
 void set_mflag(PageEntry* page_entry, char mode);
@@ -190,3 +192,5 @@ void ord_page_list(PageList* page_list, int cmp(Page* p1, Page* p2));
 int cmp_nru(Page* p1, Page* p2);
 
 void off_rflag_all(PageList* page_list);
+
+int cmp_optimal(Page* p1, Page* p2);
