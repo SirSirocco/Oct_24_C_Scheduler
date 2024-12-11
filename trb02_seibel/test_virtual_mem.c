@@ -282,6 +282,90 @@ void test_remove_page_list_index(void)
     free_page_list(page_list, TRUE);
 }
 
+void test_ord_page_list_already_ord(void)
+{
+    unsigned int addr[NUM] = { 10, 9, 1 };
+    
+    PageList* page_list = NULL;
+
+    // NULL list
+    ord_page_list(page_list, cmp_index);
+
+    if (page_list == NULL)
+        printf("* NULL list OK\n");
+
+    // 0 element
+    printf("\n* 0 ELEMENT\n");
+    page_list = create_page_list(200);
+    ord_page_list(page_list, cmp_index);
+    print_page_list(page_list);
+
+    if (page_list == NULL)
+        printf("* Empty list OK\n");
+
+    // 1 element
+    printf("\n* 1 ELEMENT\n");
+    add_page_list_ord(create_page_entry(addr[0], 1, 1, 1, 1, NULL), page_list, cmp_index);
+    ord_page_list(page_list, cmp_index);
+    print_page_list(page_list);
+
+    // 2 elements
+    printf("\n* 2 ELEMENTS\n");
+    add_page_list_ord(create_page_entry(addr[1], 1, 1, 1, 1, NULL), page_list, cmp_index);
+    ord_page_list(page_list, cmp_index);
+    print_page_list(page_list);
+
+    // 3 elements
+    printf("\n* 3 ELEMENTS\n");
+    add_page_list_ord(create_page_entry(addr[2], 1, 1, 1, 1, NULL), page_list, cmp_index);
+    ord_page_list(page_list, cmp_index);
+    print_page_list(page_list);
+
+    free_page_list(page_list, TRUE);
+}
+
+void test_ord_page_list_not_ord(void)
+{
+    unsigned int addr[NUM] = { 10, 9, 1 };
+    
+    PageList* page_list = NULL;
+
+    // NULL list
+    ord_page_list(page_list, cmp_index);
+
+    if (page_list == NULL)
+        printf("* NULL list OK\n");
+
+    // 0 element
+    printf("\n* 0 ELEMENT\n");
+    page_list = create_page_list(200);
+    ord_page_list(page_list, cmp_index);
+    print_page_list(page_list);
+
+    if (page_list == NULL)
+        printf("* Empty list OK\n");
+
+    // 1 element
+    printf("\n* 1 ELEMENT\n");
+    add_page_list_first(create_page_entry(addr[0], 1, 1, 1, 1, NULL), page_list);
+    ord_page_list(page_list, cmp_index);
+    print_page_list(page_list);
+
+    // 2 elements
+    printf("\n* 2 ELEMENTS\n");
+    add_page_list_first(create_page_entry(addr[1], 1, 1, 1, 1, NULL), page_list);
+    ord_page_list(page_list, cmp_index);
+    print_page_list(page_list);
+
+    // 3 elements
+    printf("\n* 3 ELEMENTS\n");
+    add_page_list_first(create_page_entry(addr[2], 1, 1, 1, 1, NULL), page_list);
+    ord_page_list(page_list, cmp_index);
+    print_page_list(page_list);
+
+    free_page_list(page_list, TRUE);
+}
+
 int main(void)
 {
     // printf("\n*** CREATE PAGE:\n");
@@ -297,8 +381,8 @@ int main(void)
     // printf("\n### ADD FIRST:\n");
     // test_add_page_entry_first();
 
-    printf("\n### ADD LAST:\n");
-    test_add_page_entry_last();
+    // printf("\n### ADD LAST:\n");
+    // test_add_page_entry_last();
 
     // printf("\n### FREE PG TRUE:\n");
     // test_free_page_list(TRUE);
@@ -320,6 +404,11 @@ int main(void)
 
     // printf("\n### REMOVE INDEX:\n");
     // test_remove_page_list_index();
+
+    printf("\n### ORD PAGE LIST:\n");
+    test_ord_page_list_already_ord();
+
+    test_ord_page_list_not_ord();
 
     return 0;
 }

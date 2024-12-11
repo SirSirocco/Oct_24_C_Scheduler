@@ -210,6 +210,9 @@ void add_page_list_ord(PageEntry* page_entry, PageList* page_list, int(*cmp)(Pag
 
     page_entry->next = aux->next;
     aux->next = page_entry;
+
+    if (page_entry->next == NULL)
+        page_list->last = page_entry;
 }
 
 PageEntry* remove_page_list_first(PageList* page_list)
@@ -261,53 +264,6 @@ PageEntry* remove_page_list_last(PageList* page_list)
     return aux1;
 }
 
-// PageEntry* remove_page_list_index(unsigned int index, PageList* page_list)
-// {
-//     PageEntry *aux1, *aux2;
-    
-//     if (page_list == NULL)
-//         return NULL;
-    
-//     aux1 = page_list->first;
-
-//     if (aux1 == NULL) // Empty list
-//         return NULL;
-
-//     if (aux1->page->index == index) // Removes first element
-//     {
-//         page_list->entry_num--;
-
-//         if (aux1 == page_list->last) // Last element
-//             page_list->last = NULL;
-        
-//         page_list->first = page_list->first->next;
-
-//         aux1->next = NULL; // Unlinks
-        
-//         return aux1;
-//     }
-
-//     // Tries to find it after the first
-//     while (aux1->next != NULL && aux1->next->page->index != index)
-//         aux1 = aux1->next;
-
-//     if (aux1->next == NULL) // Not found
-//         return NULL;
-
-//     page_list->entry_num--;
-
-//     aux2 = aux1->next;
-//     aux1->next = aux1->next->next;
-
-//     // Removes last
-//     if (aux2 == page_list->last)
-//         page_list->last = aux1->next; // Updates last
-
-//     aux2->next = NULL; // Unlinks
-    
-//     return aux2;
-// }
-
 PageEntry* remove_page_list_index(unsigned int index, PageList* page_list)
 {
     PageEntry *aux1, *aux2;
@@ -354,6 +310,34 @@ PageEntry* search_page_list(unsigned int index, PageList* page_list)
         aux = aux->next;
 
     return aux;
+}
+
+void ord_page_list(PageList* page_list, int cmp(Page* p1, Page* p2))
+{
+    PageEntry *progressor, *lesser;
+
+    // Empty list or list with only one element
+    if (page_list == NULL || page_list->first == NULL || page_list->first == page_list->last)
+        return;
+
+    progressor = page_list->first;
+
+    while (progressor != NULL)
+    {
+        lesser = progressor;
+        
+        while (progressor != NULL)
+        {
+            if (cmp(progressor->page, lesser->page) < 0)
+                lesser = progressor;
+            
+            progressor = progressor->next;
+        }
+
+        progressor = remove_page_list_index(lesser->page->index, page_list);
+        add_page_list_ord(progressor, page_list, cmp);
+        progressor = progressor->next;
+    }
 }
 
 int cmp_index(Page* p1, Page* p2)
@@ -453,8 +437,42 @@ int nru_priority(Page* page)
     return page->flag.modified + 2 * page->flag.referenced;
 }
 
-int cmp_nru(Page* p1, Page* p2)
+int cmp_lru(Page* p1, Page* p2)
 {
-    return nru_priority(p1) - nru_priority(p2);
+    return p1->last_ref - p2->last_ref;
 }
 
+int cmp_nru(Page* p1, Page* p2)
+{
+    int delta =  nru_priority(p1) - nru_priority(p2);
+
+    if (delta)
+        return delta;
+
+    else
+        return cmp_lru(p1, p2);
+}
+
+void off_rflag_all(PageList* page_list)
+{
+    PageEntry* entry;
+
+    if (page_list == NULL || page_list->first == NULL)
+        return;
+
+    entry = page_list->first;
+
+    while (entry != NULL)
+    {
+        set_rflag(entry, FALSE);
+        entry = entry->next;
+    }
+}
+
+unsigned int get_entry_max(PageList* page_list)
+{
+    if (page_list == NULL)
+        return 0;
+
+    return page_list->entry_max;
+}

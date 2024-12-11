@@ -127,13 +127,13 @@ Page* page_fault(unsigned int index, char mode, PageList* page_list)
     page_fault_count++;
 
     // printf("PAGE ENTRY\n:");
-    //print_page_entry(page_entry);
+    // print_page_entry(page_entry);
 
     set_mflag(page_entry, mode);
 
     if (!has_room(page_list))
     {
-         switch (subs_method_case)
+        switch (subs_method_case)
         {
             case lru:
                 page = lru_subs(page_list);
@@ -142,19 +142,27 @@ Page* page_fault(unsigned int index, char mode, PageList* page_list)
             case sc:
                 page = sc_subs(page_list);
                 break;
+
+            case nru:
+                page = nru_subs(page_list);
+                break;
         }
     }
 
     switch (subs_method_case)
-        {
-            case lru:
-                lru_add(page_list, page_entry);
-                break;
+    {
+        case lru:
+            lru_add(page_list, page_entry);
+            break;
 
-            case sc:
-                sc_add(page_list, page_entry);
-                break;
-        }
+        case sc:
+            sc_add(page_list, page_entry);
+            break;
+
+        case nru:
+            nru_add(page_list, page_entry);
+            break;
+    }
 
     return page;
 }
@@ -169,6 +177,10 @@ void list_update(unsigned int index, char mode, PageList* page_list)
         
         case sc:
             sc_update(index, mode, page_list);
+            break;
+
+        case nru:
+            nru_update(index, mode, time, page_list);
             break;
     }
 }
@@ -186,7 +198,7 @@ void paging_sim(void)
     int             last_addr = FALSE;
     unsigned int    addr;
     unsigned int    pg_idx;
-    PageList*       pg_lst = create_page_list(/*4 */page_num_max); // DEBUG
+    PageList*       pg_lst = create_page_list(4 /*page_num_max*/); // DEBUG
     Page*           pg = NULL;
 
     // DEBUG
@@ -194,7 +206,7 @@ void paging_sim(void)
 
     while (fscanf(file, " %x %c ", &addr, &mode) != EOF) // Leave blank space in the end for feof to work properly
     {
-        // printf("\n### TIME %u\n", time);
+        printf("\n### TIME %u\n", time);
         // printf("%u\n", addr);
 
         if (feof(file))
@@ -203,36 +215,33 @@ void paging_sim(void)
         // Gets page index
         pg_idx = addr >> offset;
 
-        // printf("PG_IDX: %d\n", pg_idx);
-
-        // print_page_list(pg_lst);
-
+        printf("PG_IDX: %d\n", pg_idx);
+        
         if (check_page_in_list(pg_idx, pg_lst) == FALSE)
         {
-            // printf("* pg_fault: PG_IDX: %d\n", pg_idx);
+            printf("* pg_fault: PG_IDX: %d\n", pg_idx);
             pg = page_fault(pg_idx, mode, pg_lst);
-            // printf("? PG_RM: %d\n", get_index(pg));
+            printf("? PG_RM: %d\n", get_index(pg));
         }
-
-
         else
-        {
             list_update(pg_idx, mode, pg_lst);
-        }
 
         if (pg != NULL && check_dirty_page(pg) && !last_addr)
         {
-            //printf("# pg_write: PG_IDX: %d\n", get_index(pg));
+            printf("# pg_write: PG_IDX: %d\n", get_index(pg));
             page_write(&pg);
         }
 
-        // print_page_list(pg_lst);
+        if (pg != NULL)
+        {
+            free_page(pg);
+            pg = NULL;
+        }
+
+        print_page_list(pg_lst);
         
         time++;
     }
-
-    if (pg != NULL)
-        free_page(pg);
 
     free_page_list(pg_lst, TRUE);
 }
