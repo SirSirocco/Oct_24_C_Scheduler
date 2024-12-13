@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <stdlib.h> // Required due to the definition of NULL.
 
 typedef struct flag_table   FlagTable;
 typedef struct page         Page;
@@ -28,6 +28,22 @@ void print_page(Page* page);
  * Frees all resources allocated by page.
  */
 void free_page(Page* page);
+
+/**
+ * @return The index of page. If page is NULL, returns -1.
+ */
+int get_index(Page* page);
+
+/**
+ * @return
+ * 
+ * A negative value,    if p1->index < p2->index;
+ * 
+ * 0,                   if p1->index == p2->index;
+ *  
+ * a positive value,    if p1->index > p2->index.
+ */
+int cmp_index(Page* p1, Page* p2);
 
 /**
  * Creates a new page entry (node) passing page and next as parameters.
@@ -62,12 +78,44 @@ void print_page_entry(PageEntry* page_entry);
 void free_page_entry(PageEntry* page_entry, int free_pg);
 
 /**
+ * @return Pointer to the page contained in page_entry.
+ */
+Page* get_page(PageEntry* page_entry);
+
+/**
+ * Sets last_ref as the value passed as a parameter.
+ */
+void set_last_ref(PageEntry* page_entry, unsigned int time);
+
+/**
+ * Sets next_ref as the value passed as a parameter.
+ */
+void set_next_ref(PageEntry* page_entry, unsigned int next_ref);
+
+/**
+ * Sets referenced flag to value.
+ */
+void set_rflag(PageEntry* page_entry, int value);
+
+/**
+ * Sets modified flag according to mode.
+ * 
+ * If mode equals 'M', modified is set to TRUE (1).
+ */
+void set_mflag(PageEntry* page_entry, char mode);
+
+/**
  * Creates new page list. Simultes principal memory's frames.
  * Limits the number of page entries to entry_max.
  * 
  * @param entry_max Max number of entries in the table.
  */
 PageList* create_page_list(unsigned int entry_max);
+
+/**
+ * @return The attribute entry_max of page_list.
+ */
+unsigned int get_entry_max(PageList* page_list);
 
 /**
  * Prints the page list's attributes and its entries
@@ -88,6 +136,21 @@ void free_page_list(PageList* page_list, int free_pg);
  * @return TRUE (== 1) if entry_num < entry_max, else FALSE (== 0).
  */
 int has_room(PageList* page_list);
+
+/**
+ * Returns whether the page with the index passed as argument is
+ * in page_list.
+ * 
+ * @return TRUE (1) if it is, else FALSE (0).
+ */
+int check_page_in_list(unsigned int index, PageList* page_list);
+
+/**
+ * Returns whether the page has been modified (becomes 'dirty').
+ * 
+ * @return TRUE (1) if it is, else FALSE (0).
+ */
+int check_dirty_page(Page* page);
 
 /**
  * Adds page_entry as the first element of page_list. If page_list was
@@ -146,51 +209,77 @@ PageEntry* remove_page_list_index(unsigned int index, PageList* page_list);
 PageEntry* search_page_list(unsigned int index, PageList* page_list);
 
 /**
- * @return
+ * Orders page_list according to the cmp compare function.
  * 
- * a negative value,    if p1->index < p2->index;
- * 0,                   if p1->index == p2->index; or 
- * a positive value,    if p1->index > p2->index.
- */
-int cmp_index(Page* p1, Page* p2);
-
-// FUNCTIONS FOR SIMULATION
-
-/**
- * Returns whether the page with the index passed as argument is
- * in page_list.
+ * @attention The original list will be modified.
  * 
- * @return TRUE (1) if it is, else FALSE (0).
- */
-int check_page_in_list(unsigned int index, PageList* page_list);
-
-/**
- * Returns whether the page has been modified (becomes 'dirty').
+ * @param page_list List to be ordered.
+ * @param cmp This function should return
  * 
- * @return TRUE (1) if it is, else FALSE (0).
+ * a negative value,    if p1 < p2;
+ * 
+ * 0,                   if p1 == p2;
+ *  
+ * a positive value,    if p1 > p2.
  */
-int check_dirty_page(Page* page);
-
-int get_index(Page* page);
-
-unsigned int get_entry_max(PageList* page_list);
-
-Page* get_page(PageEntry* page_entry);
-
-void set_last_ref(PageEntry* page_entry, unsigned int time);
-
-void set_next_ref(PageEntry* page_entry, unsigned int next_ref);
-
-void set_rflag(PageEntry* page_entry, int value);
-
-void set_mflag(PageEntry* page_entry, char mode);
-
-PageEntry* sc_procedure(PageList* page_list);
-
 void ord_page_list(PageList* page_list, int cmp(Page* p1, Page* p2));
 
+// FIFO SC
+
+/**
+ * Scans cyclically page_list trying to remove a page beginning from
+ * the oldest. If the current page has a second chance, it will lose it,
+ * else it will be returned.
+ * 
+ * @return The oldest page which does not have a second chance.
+ */
+PageEntry* sc_procedure(PageList* page_list);
+
+// NRU
+
+/**
+ * Compare function for the NRU algorithm.
+ * The greater the priority, the more a page should
+ * remain in memory.
+ *
+ * The possible priorities are: 
+ *
+ * 3 - R and M
+ * 
+ * 2 - R
+ * 
+ * 1 - M
+ * 
+ * 0 - NULL
+ * 
+ * where R stands for referenced and M stands for 
+ * modified.
+ * 
+ * @return A negative value, if p1 < p2;
+ * 
+ *         0, if p1 == p2;
+ * 
+ *         a positive value, if p1 > p2.
+ */
 int cmp_nru(Page* p1, Page* p2);
 
+/**
+ * Sets referenced flag to FALSE (0) for all
+ * pages in page_list.
+ */
 void off_rflag_all(PageList* page_list);
 
+// OPTIMAL ALGORITHM
+
+/**
+ * Compare function for the optimal algorithm.
+ * Pages with greater next_ref come first. In case
+ * of a tie, the ones which have not been modified come first.
+ * 
+ * @return A negative value, if p1 < p2;
+ * 
+ *         0, if p1 == p2;
+ * 
+ *         a positive value, if p1 > p2.
+ */
 int cmp_optimal(Page* p1, Page* p2);

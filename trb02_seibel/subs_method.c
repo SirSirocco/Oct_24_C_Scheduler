@@ -4,6 +4,12 @@
 #define TRUE    1
 #define FALSE   0
 
+/**
+ * The implementations of the algorithms are thoroughly described in
+ * the report.
+ */
+
+/* LEAST RECENTLY USED */
 void lru_add(PageList* page_list, PageEntry* page_entry)
 {
     add_page_list_last(page_entry, page_list);
@@ -30,6 +36,7 @@ void lru_update(int index, char mode, unsigned int time, PageList* page_list)
     add_page_list_last(page_entry, page_list);
 }
 
+/* FIRST IN FIRST OUT WITH SECOND CHANCE (FIFO SC) */
 void sc_add(PageList* page_list, PageEntry* page_entry)
 {
     add_page_list_last(page_entry, page_list);
@@ -69,7 +76,8 @@ static int cycle_update(PageList* page_list, unsigned int subs_cycle)
     return FALSE;
 }
 
-int flag = TRUE;
+/* NOT RECENTLY USED */
+int flag = TRUE; // Avoids duplicate execution of cycle update in case of substitution.
 
 void nru_add(PageList* page_list, PageEntry* page_entry)
 {
@@ -115,6 +123,7 @@ void nru_update(int index, char mode, unsigned int time, PageList* page_list)
     add_page_list_ord(page_entry, page_list, cmp_nru);
 }
 
+/* OPTIMAL ALGORITHM */
 void optimal_add(PageList* page_list, PageEntry* page_entry)
 {
     add_page_list_ord(page_entry, page_list, cmp_optimal);
@@ -135,7 +144,11 @@ void optimal_update(int index, char mode, unsigned int time, unsigned int next_r
     PageEntry* page_entry = remove_page_list_index(index, page_list);
 
     // Page update
-    //set_last_ref(page_entry, time);
+    /*
+        Comment set_last_ref for a gain in performance, as last_ref
+        is not necessary for the optimal algorithm to operate.
+    */
+    // set_last_ref(page_entry, time); 
     set_next_ref(page_entry, next_ref);
     set_mflag(page_entry, mode);
 

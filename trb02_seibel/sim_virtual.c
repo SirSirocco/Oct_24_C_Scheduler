@@ -67,8 +67,10 @@ static void str_toupper(char* s)
         s++;
 }
 
-// TODO
-void get_subs_method_case(void)
+/**
+ * Auxiliar mapping function.
+ */
+static void get_subs_method_case(void)
 {
     if (!strcmp(subs_method, LRU))
         subs_method_case = lru;
@@ -153,7 +155,7 @@ unsigned int get_next_ref(unsigned int index, unsigned int current_ref, FILE* ad
 Page* page_fault(unsigned int index, char mode, PageList* page_list)
 {
     Page* page = NULL;
-    PageEntry* page_entry = create_page_entry(index, time, 0, TRUE, FALSE, NULL); // TODO temp
+    PageEntry* page_entry = create_page_entry(index, time, 0, TRUE, FALSE, NULL);
     page_fault_count++;
 
     set_mflag(page_entry, mode);
