@@ -1,20 +1,16 @@
 #include "my_msg.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <semaphore.h>
-#include <fcntl.h>
 #include <sys/ipc.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #define PRC_NUM     2   // Numero de processos.
-#define BUF_SIZE    16  // Tamanho maximo de uma mensagem (buffer).
 #define AUX_SIZE    3   // Numero de bytes necessarios para escrever "msg".
 #define MAX_QMSG    8   // Numero maximo de mensagens na fila por vez.
-#define MSG_NUM     64  // Numero total de mensagens.
-#define TYPE_SND    1   // Identificador de mensagens enviados pelo sender.
-#define TYPE_RCV    2   // Identificador de mensagens enviados pelo receiver.
+#define MSG_NUM     64  // Numero total de mensagens a serem enviadas.
+#define TYPE_SND    1   // Identificador das mensagens enviadas pelo sender.
 
 static void error(const char* msg);
 void        msqid_get_status(int msqid, struct msqid_ds* buf);
@@ -31,6 +27,7 @@ int main(void)
     if ((msqid = msgget(IPC_PRIVATE, S_IRWXU)) == -1)
         error("msgget");
 
+    // Obtem status da fila de mensagens (necessario para realizar msqid_set)
     msqid_get_status(msqid, &queue_attr);
 
     /*
@@ -44,15 +41,15 @@ int main(void)
         error("sender");
     else if (sender == 0) // Sender
     {
-        msg.mtype = TYPE_SND;
+        msg.mtype = TYPE_SND;                           // Define tipo da mensagem
 
         while (msg_count < MSG_NUM)
         {
-            sprintf(msg.mtext, "msg%d", ++msg_count);
-            msgsnd(msqid, &msg, MSG_SIZE, 0);
+            sprintf(msg.mtext, "msg%d", ++msg_count);   // Formula mensagem
+            msgsnd(msqid, &msg, MSG_SIZE, 0);           // Envia mensagem
 
-            msqid_get_status(msqid, &queue_attr);
-            if (queue_attr.msg_qnum > MAX_QMSG)
+            msqid_get_status(msqid, &queue_attr);       // Obtem numero atual de mensagens na fila (msg_qnum)
+            if (queue_attr.msg_qnum > MAX_QMSG)         // Se ultrapassar limite, exibe aviso
                 printf("\n*** FILA EXCEDEU LIMITE DE MENSAGES ***\n\n");
         }
 
@@ -65,8 +62,8 @@ int main(void)
     {
         while (msg_count < MSG_NUM)
         {
-            msgrcv(msqid, &msg, MSG_SIZE, TYPE_SND, 0);
-            msg_count = atoi(msg.mtext + AUX_SIZE);
+            msgrcv(msqid, &msg, MSG_SIZE, TYPE_SND, 0); // Recebe mensagem
+            msg_count = atoi(msg.mtext + AUX_SIZE);     // Atualiza contador com base no valor recebido
             printf("Rcver recebeu: %s\n", msg.mtext);
         }
 
@@ -90,15 +87,15 @@ static void error(const char* msg)
     exit(EXIT_FAILURE);
 }
 
-// Atribui status da fila de mensagens a queue_attr.
-// Necessario para que o SET funcione adequamente.
+// Atribui status da fila de mensagens a buf.
+// Necessario para que o IPC_SET funcione adequamente.
 void msqid_get_status(int msqid, struct msqid_ds* buf)
 {
     if (msgctl(msqid, IPC_STAT, buf) == -1)
         error("IPC_STAT");
 }
 
-// Atualiza atributos da fila de mensagens via SET
+// Atualiza atributos da fila de mensagens via IPC_SET
 // com base nos campos de buf.
 void msqid_set(int msqid, struct msqid_ds* buf)
 {

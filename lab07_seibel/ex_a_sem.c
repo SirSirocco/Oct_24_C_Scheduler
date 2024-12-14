@@ -9,10 +9,9 @@
 #include <unistd.h>
 
 #define PRC_NUM     2   // Numero de processos.
-#define BUF_SIZE    16  // Tamanho maximo de uma mensagem (buffer).
 #define MSG_NUM     64  // Numero total de mensagens.
-#define TYPE_SND    1   // Identificador de mensagens enviados pelo sender.
-#define TYPE_RCV    2   // Identificador de mensagens enviados pelo receiver.
+#define TYPE_SND    1   // Identificador das mensagens enviadas pelo sender.
+#define TYPE_RCV    2   // Identificador das mensagens enviadas pelo receiver.
 #define RCV_SEM		"has read"      // Indica que receiver leu.
 #define SND_SEM		"has written"   // Indica que sender escreveu.
 

@@ -16,15 +16,15 @@ int sem_setval(int semid, int semnum, int val)
 }
 
 // Decrementsts semaphore semid[semnum] by 1.
-void sem_down(int semid, int semnum)
+int sem_down(int semid, int semnum)
 {
     struct sembuf sops = { semnum, -1, SEM_UNDO };
-    semop(semid, &sops, 1);
+    return semop(semid, &sops, 1);
 }
 
 // Increments semaphore semid[semnum] by 1.
-void sem_up(int semid, int semnum)
+int sem_up(int semid, int semnum)
 {
     struct sembuf sops = { semnum, 1, SEM_UNDO };
-    semop(semid, &sops, 1);
+    return semop(semid, &sops, 1);
 }
