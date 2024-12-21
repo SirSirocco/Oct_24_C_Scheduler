@@ -10,39 +10,57 @@
 
 #define error(msg) do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
-#define PARSER      "|"
-#define SIZ_FILE    4096
 #define FD_STDIN    0
 #define FD_STDOUT   1
 #define FILE        "temp"
+#define PARSER      "|"
 
+/**
+ * Implements Unix's pipe.
+ */
 int main(int argc, char** argv)
 {
-    pid_t   pid;
-    int     status, prevfd = FD_STDIN, currfd, stdout_fd;
-    size_t  offset = 1, size = 1;
+    pid_t   pid;                // Process ID.
+   
+    int     status,             // Auxiliar variable used in wait().
+            prevfd = FD_STDIN,  // Previous file descriptor.
+            currfd,             // Current file descriptor.
+            stdout_fd;          // File descriptor to stdout (terminal).
+    
+    size_t  offset = 1,         // Current index of argv.
+            
+    /* 
+        Number of elements in the current program's params array.
+        Has to be at least 1 as it includes the program's name.
+    */
+            size = 1;
 
+    // Duplicates reference to stdout for later use
     stdout_fd = dup(FD_STDOUT);
 
     while (offset < argc)
     {
-        // Parses argv of the current program
+        // Parses params array of the current program
         while (argv[offset + size] && strcmp(argv[offset + size], PARSER))
             size++;
 
-        if (argv[offset + size]) // Intermediate outputs should be to temp
+        // argv[i] == NULL indicates end of argv and, thus, last program
+
+        if (argv[offset + size]) // Intermediate outputs should be redirected to temp file
         {
             argv[offset + size] = NULL;
+
             if ((currfd = open(FILE, O_CREAT | O_RDWR | O_TRUNC, __S_IREAD | __S_IWRITE)) == -1)
                 error("open");
-            dup2(currfd, FD_STDOUT);
+
+            dup2(currfd, FD_STDOUT); // Redirects output to temp file
         }
 
-        else // Last output should be to stdout
+        else // Last output should be to stdout (terminal)
             dup2(stdout_fd, FD_STDOUT);
 
         // Creates pipe
-        dup2(prevfd, FD_STDIN);
+        dup2(prevfd, FD_STDIN); // Redirects input to previous temp file
 
         // Executes program
         if ((pid = fork()) < 0) // Fork error
@@ -55,7 +73,7 @@ int main(int argc, char** argv)
         }
         wait(&status);
 
-        // Resets variables
+        // Resets variables for next program
         offset = size + 1;
         size = 1;
 
@@ -82,5 +100,6 @@ int main(int argc, char** argv)
             in the console.
         V.: ./my_pipe ps | echo
         Exp.: test1.txt
+        Act.: OK.
     
 */

@@ -1,0 +1,4 @@
+    PID TTY          TIME CMD
+  16938 pts/0    00:00:00 bash
+  20787 pts/0    00:00:00 my_pipe
+  20788 pts/0    00:00:00 ps
