@@ -112,13 +112,13 @@ This module implements InterControllerSim, which simulates the interrupt control
 - **IRQ0 (TimeSlice):** An interrupt occurring every 1 second, indicating that the maximum execution time of a process has been reached.
 - **IRQ1 (Device D1):** An interrupt occurring 3 seconds after an I/O request for D1, simulating the completion of the operation.
 
-InterControllerSim uses a 1-second `sleep` within a loop to generate periodic time slice interrupts in the form of a `kill` with `IRQ0` directed to the kernel. When the time slice interrupt occurs, KernelSim is notified to suspend the running process and activate the next one in the _ready state_ queue. The current process context is saved and placed at the end of the ready queue according to the _round-robin_ policy, and the next process context is loaded for execution.
+InterControllerSim uses a 1-second `sleep` within a loop to generate periodic time slice interrupts in the form of a `kill` with `IRQ0` directed to the kernel. When the time slice interrupt occurs, KernelSim is notified to suspend the running process and activate the next one in the ready state queue. The current process context is saved and placed at the end of the ready queue according to the round-robin policy, and the next process context is loaded for execution.
 
 For I/O interruptions, upon receiving a request, a 3-second alarm is set, triggering an `IRQ1` signal to the kernel to notify it of the operation's completion. I/O operations are simulated by blocked processes, which have their context saved and are placed in the I/O waiting queue. Once completed, processes are released and return to the ready queue for execution.
 
 ### 1.2 `pcbqueue.c`
 
-This module implements the process control queues and Process Control Blocks (PCBs) that store process contexts. KernelSim organizes processes into two categories:
+This module implements the process control queues and Process Control Boards (PCBs) that store process contexts. KernelSim organizes processes into two categories:
 
 - **Ready queue (`ready_q`):** Processes ready for execution.
 - **I/O waiting queue (`wait_q`):** Processes waiting for the completion of an I/O operation.
@@ -129,7 +129,7 @@ The queues store PCBs that contain:
 - **PC:** Program counter.
 - **_syscallargs_ (System Call Arguments):** Arguments of the last system call, which in this simulation exclusively involve I/O operations with D1.
 
-Scheduling control is managed through a circular queue `ready_q`, and KernelSim selects the next ready process for execution after a time slice interruption. When a process makes an I/O system call (_syscall_), it is removed from the ready queue and placed in the waiting queue. Once the I/O completion interrupt occurs, the process is removed from the waiting queue and returns to the ready queue.
+Scheduling control is managed through a circular queue `ready_q`, and KernelSim selects the next ready process for execution after a time slice interruption. When a process makes an I/O system call (syscall), it is removed from the ready queue and placed in the waiting queue. Once the I/O completion interrupt occurs, the process is removed from the waiting queue and returns to the ready queue.
 
 ### 1.3 `mysem.c`
 
@@ -141,7 +141,7 @@ In this simulation, semaphores are used to prevent a process from being interrup
 
 ### 1.4 `a.c`
 
-This script is executed by the processes scheduled by KernelSim. It simulates a system call function `systemcall(char* stream, char* mode)`, where `stream` is the device name (always "D1" in this simulation) and `mode` specifies the type of operation: `"R"` (_read_) or `"W"` (_write_).
+This script is executed by the processes scheduled by KernelSim. It simulates a system call function `systemcall(char* stream, char* mode)`, where `stream` is the device name (always "D1" in this simulation) and `mode` specifies the type of operation: `"R"` (read) or `"W"` (write).
 
 The process connects to shared memory and shares a semaphore named `mutex_syscall`, with a maximum value of 1 (acting as a mutex). It then performs 10 iterations in a loop with a 1-second `sleep`. In the third iteration, a read request for D1 is made, and in the sixth, a write request. At the end, the process releases the resources and terminates.
 
